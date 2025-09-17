@@ -3,30 +3,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <vec.h>
+#include <color.h>
+
 typedef unsigned char BYTE;
 
-struct Color {
-    BYTE r;
-    BYTE g;
-    BYTE b;
-};
-
-struct Canvas {
+typedef struct Canvas {
     int width;
     int height;
-    struct Color *pixels;
-};
+    Color *pixels;
+} Canvas;
 
 struct Canvas new_canvas(int width, int height) {
     /// Initialises a canvas of the requested width and height with all pixels set to black.
-    int size = width * height * sizeof(struct Color);
-    struct Color *p = malloc(size);
+    int size = width * height * sizeof(Color);
+    Color *p = malloc(size);
     memset(p, 0, size);
 
-    struct Canvas ret;
-    ret.width = width;
-    ret.height = height;
-    ret.pixels = p;
+    Canvas ret = {
+        width,
+        height,
+        p
+    };
     return ret;
 }
 
@@ -42,6 +40,7 @@ int write_ppm(struct Canvas canvas, const char *filepath) {
     fprintf(f, "%d %d\n", canvas.width, canvas.height);  // Width and height in pixels
     fprintf(f, "255\n");                                 // Maximum color value
 
+    // TODO: No line more than 70 characters long
     for (int y = 0; y < canvas.height; y++) {
         for (int x = 0; x < canvas.width; x++) {
             struct Color c = canvas.pixels[y * canvas.width + x];
@@ -49,6 +48,7 @@ int write_ppm(struct Canvas canvas, const char *filepath) {
         }
         fprintf(f, "\n");
     }
+    fclose(f);
     return 0;
 }
 
