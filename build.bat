@@ -1,3 +1,3 @@
 @echo off
 
-gcc src/main.c -o build/main.exe -I include
+gcc src/* -g -O0 -o build/main.exe -I include

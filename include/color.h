@@ -1,3 +1,5 @@
+#pragma once
+
 /* RGB color operations. See Chapter 2 of the Ray Tracer Challenge. */
 
 typedef struct Color {
