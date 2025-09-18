@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-struct Canvas canvas_new(int width, int height) {
+Canvas canvas_create(int width, int height) {
     /// Initialises a canvas of the requested width and height with all pixels set to black.
     int size = width * height * sizeof(Color);
     Color *p = malloc(size);
@@ -16,6 +16,10 @@ struct Canvas canvas_new(int width, int height) {
         p
     };
     return ret;
+}
+
+void canvas_destroy(Canvas canvas) {
+    free(canvas.pixels);
 }
 
 int canvas_pixel_set(Canvas canvas, int x, int y, Color color) {
