@@ -8,7 +8,7 @@
 
 
 int main() {
-    Canvas canvas = canvas_new(10, 10);
+    Canvas canvas = canvas_create(10, 10);
     Color red = { 1.0, 0.0, 0.0 };
     canvas_pixel_set(canvas, 0, 0, red);
     canvas_pixel_set(canvas, 1, 0, red);
