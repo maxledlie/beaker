@@ -1,0 +1,29 @@
+#pragma once
+
+#include <stddef.h>
+#include <vector.h>
+
+typedef struct Ray {
+    Vec4D origin; 
+    Vec4D direction;
+} Ray;
+
+typedef struct Intersection {
+    // TODO: Add pointer to object we intersected with
+    double t;
+} Intersection;
+
+typedef struct IntersectionArray {
+    size_t count;
+    Intersection *items;
+} IntersectionArray;
+
+/// Returns the point the given distance along the ray.
+Vec4D ray_position(Ray ray, double t);
+
+/// Returns the t-values at which the given ray intersects a unit sphere at the origin.
+IntersectionArray ray_intersect_sphere(Ray ray);
+
+/// Returns the intersection with the smallest positive t-value,
+/// or NULL if intersection list is empty or has only negative t-values.
+Intersection *hit(IntersectionArray intersections);
