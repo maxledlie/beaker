@@ -1,3 +1,5 @@
+#pragma once
+
 /* See Chapter 3 of the Ray Tracer Challenge */
 
 #include <vector.h>

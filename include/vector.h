@@ -1,3 +1,5 @@
+#pragma once
+
 /* 4-dimensional vectors. See Chapter 1 of The Ray Tracer Challenge for the semantics. */
 
 typedef struct Vec4D {
