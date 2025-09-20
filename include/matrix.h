@@ -16,15 +16,19 @@ Vec4D mat4d_mul_vec4d(Mat4D a, Vec4D b);
 Mat4D mat4d_transpose(Mat4D a);
 Mat4D mat4d_inverse(Mat4D a);
 double mat4d_determinant(Mat4D a);
-Mat3D mat4d_submatrix(Mat4D a, int x, int y);
-double mat4d_cofactor(Mat4D a);
+Mat3D mat4d_submatrix(Mat4D a, int iRow, int jCol);
+double mat4d_minor(Mat4D a, int iRow, int jCol);
+double mat4d_cofactor(Mat4D a, int iRow, int jCol);
 void mat4d_dbg(Mat4D a);
 
 // 3D matrices
-Mat2D mat3d_submatrix(Mat3D a, int x, int y);
-double mat3d_minor(Mat3D a);
-double mat3d_cofactor(Mat3D a);
+Mat2D mat3d_submatrix(Mat3D a, int iRow, int jCol);
+double mat3d_minor(Mat3D a, int iRow, int jCol);
+double mat3d_cofactor(Mat3D a, int iRow, int jCol);
+double mat3d_determinant(Mat3D a);
 
+// 2D matrices
+double mat2d_determinant(Mat2D a);
 
 // Transformation matrices
 Mat4D translation(double x, double y, double z);

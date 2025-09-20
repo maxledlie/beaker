@@ -3,6 +3,7 @@
 
 #include <vector.h>
 #include <ray.h>
+#include <geometry.h>
 
 Ray ray_transform(Ray ray, Mat4D transform) {
     Vec4D origin = mat4d_mul_vec4d(transform, ray.origin);
@@ -10,12 +11,16 @@ Ray ray_transform(Ray ray, Mat4D transform) {
     return (Ray){ origin, direction };
 }
 
-IntersectionArray ray_intersect_sphere(Ray ray) {
-    // Vector from sphere's centre to ray origin
-    Vec4D sphere_to_ray = d4_sub(ray.origin, d4_point(0., 0., 0.));
+IntersectionArray ray_intersect_sphere(Ray ray, Sphere sphere) {
+    // Transform the ray into the sphere's object space
+    Mat4D inv = mat4d_inverse(sphere.transform);
+    Ray r = ray_transform(ray, inv);
 
-    double a = d4_dot(ray.direction, ray.direction);
-    double b = 2 * d4_dot(ray.direction, sphere_to_ray);
+    // Vector from sphere's centre to ray origin
+    Vec4D sphere_to_ray = d4_sub(r.origin, d4_point(0., 0., 0.));
+
+    double a = d4_dot(r.direction, r.direction);
+    double b = 2 * d4_dot(r.direction, sphere_to_ray);
     double c = d4_dot(sphere_to_ray, sphere_to_ray) - 1;
 
     double discriminant = b * b - 4 * a * c;
