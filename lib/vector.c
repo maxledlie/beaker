@@ -50,6 +50,12 @@ Vec4D d4_cross(Vec4D a, Vec4D b) {
     return ret;
 }
 
+Vec4D d4_reflect(Vec4D in, Vec4D normal)
+{
+    double scale = 2 * d4_dot(in, normal);
+    return d4_sub(in, d4_mul(normal, scale));
+}
+
 Vec4D d4_neg(Vec4D a) {
     Vec4D ret = {
         -a.x,
