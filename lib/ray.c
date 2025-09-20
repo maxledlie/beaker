@@ -4,6 +4,12 @@
 #include <vector.h>
 #include <ray.h>
 
+Ray ray_transform(Ray ray, Mat4D transform) {
+    Vec4D origin = mat4d_mul_vec4d(transform, ray.origin);
+    Vec4D direction = mat4d_mul_vec4d(transform, ray.direction);
+    return (Ray){ origin, direction };
+}
+
 IntersectionArray ray_intersect_sphere(Ray ray) {
     // Vector from sphere's centre to ray origin
     Vec4D sphere_to_ray = d4_sub(ray.origin, d4_point(0., 0., 0.));

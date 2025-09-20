@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <vector.h>
+#include <matrix.h>
 
 typedef struct Ray {
     Vec4D origin; 
@@ -17,6 +18,9 @@ typedef struct IntersectionArray {
     size_t count;
     Intersection *items;
 } IntersectionArray;
+
+/// Returns the ray that would result from applying the given tranformation to the given input ray.
+Ray ray_transform(Ray ray, Mat4D transform);
 
 /// Returns the point the given distance along the ray.
 Vec4D ray_position(Ray ray, double t);
