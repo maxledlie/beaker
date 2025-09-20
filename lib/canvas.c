@@ -22,7 +22,7 @@ void canvas_destroy(Canvas canvas) {
     free(canvas.pixels);
 }
 
-int canvas_pixel_set(Canvas canvas, int x, int y, Color color) {
+void canvas_pixel_set(Canvas canvas, int x, int y, Color color) {
     canvas.pixels[y * canvas.width + x] = color;
 }
 

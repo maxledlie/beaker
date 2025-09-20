@@ -40,7 +40,7 @@ int main() {
 
     Vec4D ray_origin = d4_point(0., 0., -5.);
     double wall_z = 10.0;
-    double wall_size = 20.0;
+    double wall_size = 7.0;
 
     int canvas_pixels = 100;
     double pixel_size = wall_size / canvas_pixels;
