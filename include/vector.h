@@ -27,4 +27,6 @@ Vec4D d4_norm(Vec4D a);
 double d4_dot(Vec4D a, Vec4D b);
 Vec4D d4_cross(Vec4D a, Vec4D b);
 
+Vec4D d4_reflect(Vec4D in, Vec4D normal);
+
 // ----------------------------------------

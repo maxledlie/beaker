@@ -7,3 +7,5 @@ typedef struct Sphere {
 } Sphere;
 
 Sphere sphere_new();
+
+Vec4D sphere_normal(Sphere sphere, Vec4D world_point);
