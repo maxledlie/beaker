@@ -12,7 +12,7 @@ IntersectionArray ray_intersect_sphere(Ray ray) {
     double b = 2 * d4_dot(ray.direction, sphere_to_ray);
     double c = d4_dot(sphere_to_ray, sphere_to_ray) - 1;
 
-    double discriminant = b * b - 4 * a - c;
+    double discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {
         return (IntersectionArray){ 0, NULL };
@@ -34,7 +34,7 @@ IntersectionArray ray_intersect_sphere(Ray ray) {
 Intersection *hit(IntersectionArray intersections) {
     double best = INFINITY;
     int best_i = -1;
-    for (int i = 1; i < intersections.count; i++) {
+    for (size_t i = 1; i < intersections.count; i++) {
         Intersection intersection = intersections.items[i];
         if (intersection.t >= 0.0 && intersection.t < best) {
             best = intersection.t;

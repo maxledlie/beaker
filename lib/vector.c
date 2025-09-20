@@ -85,7 +85,7 @@ Vec4D d4_div(Vec4D a, double scale) {
 }
 
 double d4_mag(Vec4D a) {
-    return sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w  * a.w);
+    return sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
 }
 
 double d4_dot(Vec4D a, Vec4D b) {
