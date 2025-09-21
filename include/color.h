@@ -13,3 +13,6 @@ Color color_sub(Color a, Color b);
 Color color_mul(Color a, double scale);
 Color color_div(Color a, double scale);
 Color color_hadamard(Color a, Color b);
+
+// Built-in colors
+Color color_black();

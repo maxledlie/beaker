@@ -1,9 +1,11 @@
 #pragma once
 
 #include <matrix.h>
+#include <material.h>
 
 typedef struct Sphere {
     Mat4D transform;
+    Material material;
 } Sphere;
 
 Sphere sphere_new();

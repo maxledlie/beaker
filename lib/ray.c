@@ -11,6 +11,11 @@ Ray ray_transform(Ray ray, Mat4D transform) {
     return (Ray){ origin, direction };
 }
 
+Vec4D ray_position(Ray ray, double t)
+{
+    return d4_add(ray.origin, d4_mul(ray.direction, t));
+}
+
 IntersectionArray ray_intersect_sphere(Ray ray, Sphere sphere) {
     // Transform the ray into the sphere's object space
     Mat4D inv = mat4d_inverse(sphere.transform);
