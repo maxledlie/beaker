@@ -3,7 +3,7 @@
 
 Sphere sphere_new() {
     Mat4D transform = mat4d_identity();
-    return (Sphere) { transform };
+    return (Sphere) { transform, material_new() };
 }
 
 Vec4D sphere_normal(Sphere sphere, Vec4D world_point)

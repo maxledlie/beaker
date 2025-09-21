@@ -44,3 +44,8 @@ Color color_hadamard(Color a, Color b) {
     };
     return ret;
 }
+
+Color color_black()
+{
+    return (Color) {0.0, 0.0, 0.0 };
+}
