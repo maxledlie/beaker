@@ -30,6 +30,11 @@ Color canvas_pixel_get(Canvas canvas, int x, int y) {
     return canvas.pixels[y * canvas.width + x];
 }
 
+int serialize_intensity(double intensity) {
+    double i = fmin(fmax(intensity, 0.0), 1.0);
+    return (int) floor(i * 255);
+}
+
 int canvas_save_ppm(Canvas canvas, const char *filepath) {
     FILE *f = fopen(filepath, "w");
     if (!f) {
@@ -45,9 +50,9 @@ int canvas_save_ppm(Canvas canvas, const char *filepath) {
     for (int y = 0; y < canvas.height; y++) {
         for (int x = 0; x < canvas.width; x++) {
             Color c = canvas.pixels[y * canvas.width + x];
-            int r = (int) floor(c.r * 255.0);
-            int g = (int) floor(c.g * 255.0);
-            int b = (int) floor(c.b * 255.0);
+            int r = serialize_intensity(c.r);
+            int g = serialize_intensity(c.g);
+            int b = serialize_intensity(c.b);
             fprintf(f, "%d %d %d ", r, g, b);
         }
         fprintf(f, "\n");
