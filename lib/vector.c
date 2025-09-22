@@ -61,7 +61,7 @@ Vec4D d4_neg(Vec4D a) {
         -a.x,
         -a.y,
         -a.z,
-        -a.z
+        -a.w
     };
     return ret;
 }

@@ -15,18 +15,17 @@ int main() {
     double wall_z = 10.0;
     double wall_size = 7.0;
 
-    int canvas_pixels = 1024;
+    int canvas_pixels = 100;
     double pixel_size = wall_size / canvas_pixels;
     double half = wall_size / 2.0;
 
     Canvas canvas = canvas_create(canvas_pixels, canvas_pixels);
 
     Sphere sphere = sphere_new();
-    sphere.transform = scaling(1.0, 0.6, 1.0);
     sphere.material = material_new();
     sphere.material.color = (Color) { 1.0, 0.2, 1.0 };
 
-    Vec4D light_position = d4_point(-100.0, 25.0, -20.0);
+    Vec4D light_position = d4_point(-10.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
 

@@ -13,7 +13,7 @@ Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D e
     ambient = color_mul(effective_color, material.ambient);
 
     // If negative, light is "inside" the object
-    double light_dot_normal = d4_dot(light.position, normal);
+    double light_dot_normal = d4_dot(lightv, normal);
     if (light_dot_normal < 0.0) {
         diffuse = color_black();
         specular = color_black();
@@ -23,7 +23,7 @@ Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D e
         Vec4D reflectv = d4_reflect(d4_neg(lightv), normal);
         double reflect_dot_eye = d4_dot(eye, reflectv);
 
-        if (reflect_dot_eye < 0.0) {
+        if (reflect_dot_eye <= 0.0) {
             specular = color_black();
         } else {
             double factor = pow(reflect_dot_eye, material.shininess);
