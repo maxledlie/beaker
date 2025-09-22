@@ -16,7 +16,7 @@ Vec4D ray_position(Ray ray, double t)
     return d4_add(ray.origin, d4_mul(ray.direction, t));
 }
 
-IntersectionArray ray_intersect_sphere(Ray ray, Sphere sphere) {
+IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere) {
     // Transform the ray into the sphere's object space
     Mat4D inv = mat4d_inverse(sphere.transform);
     Ray r = ray_transform(ray, inv);
@@ -31,7 +31,7 @@ IntersectionArray ray_intersect_sphere(Ray ray, Sphere sphere) {
     double discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {
-        return (IntersectionArray){ 0, NULL };
+        return (IntersectionList){ 0, NULL };
     }
 
     double root = sqrt(discriminant);
@@ -40,22 +40,22 @@ IntersectionArray ray_intersect_sphere(Ray ray, Sphere sphere) {
 
     // It feels silly to malloc two doubles. But for other geometries there may be many more intersections.
     Intersection *out = malloc(2 * sizeof(Intersection));
-    Intersection i1 = { t1 };
-    Intersection i2 = { t2 };
+    Intersection i1 = { t1, &sphere };
+    Intersection i2 = { t2, &sphere };
     out[0] = i1;
     out[1] = i2;
-    return (IntersectionArray){ 2, out };
+    return (IntersectionList){ 2, out };
 }
 
-Intersection *hit(IntersectionArray intersections) {
+Intersection *hit(IntersectionList intersections) {
     double best = INFINITY;
-    int best_i = -1;
-    for (size_t i = 1; i < intersections.count; i++) {
-        Intersection intersection = intersections.items[i];
-        if (intersection.t >= 0.0 && intersection.t < best) {
-            best = intersection.t;
-            best_i = i;
+    Intersection *best_ptr = NULL;
+    for (size_t i = 0; i < intersections.count; i++) {
+        Intersection *candidate = &intersections.items[i];
+        if (candidate->t >= 0.0 && candidate->t < best) {
+            best = candidate->t;
+            best_ptr = candidate;
         }
     }
-    return best_i >= 0 ? &intersections.items[best_i] : (Intersection *)NULL;
+    return best_ptr;
 }
