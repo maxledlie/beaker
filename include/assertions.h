@@ -33,6 +33,14 @@ int assert_eq_int(int actual, int expected) {
     return 1;
 }
 
+int assert_eq_ptr(void *actual, void *expected) {
+    if (actual != expected) {
+        printf("Expected pointer to address %p but was %p\n", expected, actual);
+        return 0;
+    }
+    return 1;
+}
+
 int assert_eq_vec4d(Vec4D actual, Vec4D expected, double tol) {
     return assert_eq_double(actual.x, expected.x, tol) &&
         assert_eq_double(actual.y, expected.y, tol) &&

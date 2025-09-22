@@ -15,7 +15,7 @@ int main() {
     double wall_z = 10.0;
     double wall_size = 7.0;
 
-    int canvas_pixels = 100;
+    int canvas_pixels = 512;
     double pixel_size = wall_size / canvas_pixels;
     double half = wall_size / 2.0;
 
@@ -35,7 +35,7 @@ int main() {
                 double world_x = -half + pixel_size * x;
                 Vec4D position = d4_point(world_x, world_y, wall_z);
                 Ray r = { ray_origin, d4_norm(d4_sub(position, ray_origin)) };
-                IntersectionArray xs = ray_intersect_sphere(r, sphere);
+                IntersectionList xs = ray_intersect_sphere(r, sphere);
 
                 Intersection *h = hit(xs);
                 if (h) {

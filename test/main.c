@@ -28,11 +28,15 @@ void test_matrix_inverse() {
     assert_eq_mat4d(b, expected, 0.00001);
 }
 
+// ----------------------------
+// Ray-Sphere Intersections
+// ----------------------------
+
 /// A sphere is behind a ray
 void test_ray_intersect_sphere__sphere_behind_ray() {
     Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
     Sphere sphere = sphere_new();
-    IntersectionArray xs = ray_intersect_sphere(ray, sphere);
+    IntersectionList xs = ray_intersect_sphere(ray, sphere);
     assert_eq_int(xs.count, 2);
     assert_eq_double(xs.items[0].t, -6.0, TOL);
     assert_eq_double(xs.items[1].t, -4.0, TOL);
@@ -51,6 +55,16 @@ void test_sphere_normal__translated() {
     sphere.transform = translation(0.0, 1.0, 0.0);
     Vec4D n = sphere_normal(sphere, d4_point(0.0, 1.70711, -0.70711));
     assert_eq_vec4d(n, d4_vector(0.0, 0.70711, -0.70711), 0.00001);
+}
+
+void test_hit__all_intersections_positive_t() {
+    Sphere sphere = sphere_new();
+    Intersection i1 = { 1.0, &sphere };
+    Intersection i2 = { 2.0, &sphere };
+    Intersection items[] = { i2, i1 };
+    IntersectionList xs = { 2, items };
+    Intersection *i = hit(xs);
+    assert_eq_ptr(i, &items[1]);
 }
 
 /// --------------------------
@@ -110,6 +124,8 @@ int main() {
     test_ray_position();
 
     test_sphere_normal__translated();
+
+    test_hit__all_intersections_positive_t();
 
     test_vec4d_reflect__approaching_at_45();
     test_lighting__eye_between_light_and_surface();
