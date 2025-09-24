@@ -43,7 +43,7 @@ int main() {
             double world_x = -half + pixel_size * x;
             Vec4D position = d4_point(world_x, world_y, wall_z);
             Ray r = { ray_origin, d4_norm(d4_sub(position, ray_origin)) };
-            Color c = ray_color_at(r, world);
+            Color c = ray_color(r, world.light_count, world.lights, world.object_count, world.objects);
             canvas_pixel_set(canvas, x, y, c);
         }
     }
