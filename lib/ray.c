@@ -60,10 +60,10 @@ Vec4D ray_position(Ray ray, double t)
     return result;
 }
 
-IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere)
+IntersectionList ray_intersect_sphere(Ray ray, Sphere *sphere)
 {
     // Transform the ray into the sphere's object space
-    Mat4D inv = mat4d_inverse(sphere.transform);
+    Mat4D inv = mat4d_inverse(sphere->transform);
     Ray r = ray_transform(ray, inv);
 
     // Vector from sphere's centre to ray origin
@@ -84,16 +84,16 @@ IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere)
     double t1 = (-b - root) / (2 * a);
     double t2 = (-b + root) / (2 * a);
 
-    intersection_list_add(&xs, (Intersection){ t1, &sphere });
-    intersection_list_add(&xs, (Intersection){ t2, &sphere });
+    intersection_list_add(&xs, (Intersection){ t1, sphere });
+    intersection_list_add(&xs, (Intersection){ t2, sphere });
     return xs;
 }
 
-IntersectionList ray_intersect_world(Ray ray, World world)
+IntersectionList ray_intersect_world(Ray ray, size_t object_count, Sphere *objects)
 {
     IntersectionList xs = intersection_list_new();
-    for (size_t i = 0; i < world.object_count; i++) {
-        IntersectionList sub_xs = ray_intersect_sphere(ray, world.objects[i]);
+    for (size_t i = 0; i < object_count; i++) {
+        IntersectionList sub_xs = ray_intersect_sphere(ray, &objects[i]);
         for (size_t j = 0; j < sub_xs.count; j++) {
             intersection_list_add(&xs, sub_xs.items[j]);
         }
@@ -121,7 +121,7 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     d.object_ptr = i.object_ptr;
     d.point = ray_position(r, d.t);
     d.eyev = d4_neg(r.direction);
-    d.normalv = sphere_normal(*d.object_ptr, d.point);
+    d.normalv = sphere_normal(d.object_ptr, d.point);
 
     // Handle case where eye is *inside* the object, so normal vector points away
     if (d4_dot(d.normalv, d.eyev) < 0.0) {
@@ -133,10 +133,10 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     return d;
 }
 
-Color shade_hit(World world, IntersectionData data) {
+Color shade_hit(size_t light_count, PointLight *lights, IntersectionData data) {
     Color c = color_black();
-    for (size_t i = 0; i < world.light_count; i++) {
-        PointLight light = world.lights[i];
+    for (size_t i = 0; i < light_count; i++) {
+        PointLight light = lights[i];
         Color contribution = lighting_compute(
             data.object_ptr->material,
             light,
@@ -149,14 +149,14 @@ Color shade_hit(World world, IntersectionData data) {
     return c;
 }
 
-Color ray_color(Ray ray, World world) {
-    IntersectionList xs = ray_intersect_world(ray, world);
+Color ray_color(Ray ray, size_t light_count, PointLight *lights, size_t object_count, Sphere *objects) {
+    IntersectionList xs = ray_intersect_world(ray, object_count, objects);
     Intersection *h = hit(xs);
     if (!h) {
         return color_black();
     }
 
     IntersectionData data = ray_prepare_computations(ray, *h);
-    Color c = shade_hit(world, data);
+    Color c = shade_hit(light_count, lights, data);
     return c;
 }

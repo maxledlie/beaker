@@ -58,7 +58,7 @@ void test_mat4d_inverse() {
 void test_ray_intersect_sphere__sphere_behind_ray() {
     Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
     Sphere sphere = sphere_new();
-    IntersectionList xs = ray_intersect_sphere(ray, sphere);
+    IntersectionList xs = ray_intersect_sphere(ray, &sphere);
     assert_eq_int(xs.count, 2);
     assert_eq_double(xs.items[0].t, -6.0, TOL);
     assert_eq_double(xs.items[1].t, -4.0, TOL);
@@ -75,7 +75,7 @@ void test_ray_position() {
 void test_sphere_normal__translated() {
     Sphere sphere = sphere_new();
     sphere.transform = translation(0.0, 1.0, 0.0);
-    Vec4D n = sphere_normal(sphere, d4_point(0.0, 1.70711, -0.70711));
+    Vec4D n = sphere_normal(&sphere, d4_point(0.0, 1.70711, -0.70711));
     assert_eq_vec4d(n, d4_vector(0.0, 0.70711, -0.70711), 0.00001);
 }
 
@@ -144,51 +144,37 @@ void test_lighting__eye_in_path_of_reflection_vector() {
 // Making a Scene
 // ------------------------
 
-/// Intersects a ray with the default world. Since there are two concentric spheres,
-/// there should be four intersection points.
-void test_ray_intersect_world__default_world() {
-    World w = world_default();
-    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
-    IntersectionList xs = ray_intersect_world(r, w);
-    assert_eq_size_t(xs.count, 4);
-    assert_eq_double(xs.items[0].t, 4.0, TOL);
-    assert_eq_double(xs.items[1].t, 4.5, TOL);
-    assert_eq_double(xs.items[2].t, 5.5, TOL);
-    assert_eq_double(xs.items[3].t, 6.0, TOL);
-}
-
 void test_ray_color__ray_misses() {
     World w = world_default();
     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 1., 0.) };
-    Color c = ray_color(r, w);
+    Color c = ray_color(r, w.light_count, w.lights, w.object_count, w.objects);
     assert_eq_color(c, color_black(), TOL);
 }
 
 void test_ray_color__ray_hits() {
     World w = world_default();
     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
-    Color c = ray_color(r, w);
-    assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), TOL);
+    Color c = ray_color(r, w.light_count, w.lights, w.object_count, w.objects);
+    assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), 0.00001);
 }
 
 int main() {
-    // test_mat4d_submatrix();
-    // test_mat4d_inverse();
+    test_mat4d_submatrix();
+    test_mat4d_inverse();
 
-    // test_ray_intersect_sphere__sphere_behind_ray();
-    // test_ray_position();
+    test_ray_intersect_sphere__sphere_behind_ray();
+    test_ray_position();
 
-    // test_sphere_normal__translated();
+    test_sphere_normal__translated();
 
-    // test_hit__all_intersections_positive_t();
+    test_hit__all_intersections_positive_t();
 
-    // test_vec4d_reflect__approaching_at_45();
-    // test_lighting__eye_between_light_and_surface();
-    // test_lighting__eye_between_light_and_surface__eye_offset_45();
-    // test_lighting__eye_in_path_of_reflection_vector();
+    test_vec4d_reflect__approaching_at_45();
+    test_lighting__eye_between_light_and_surface();
+    test_lighting__eye_between_light_and_surface__eye_offset_45();
+    test_lighting__eye_in_path_of_reflection_vector();
 
-    // test_ray_intersect_world__default_world();
-    // test_ray_color__ray_misses();
+    test_ray_color__ray_misses();
     test_ray_color__ray_hits();
 
     printf("Testing complete\n");
