@@ -20,7 +20,7 @@ int intersection_list_add(IntersectionList *xs, Intersection x)
     // Allocate additional memory if required
     if (xs->count >= xs->capacity) {
         xs->capacity *= 2;
-        xs->items = realloc(xs->items, xs->capacity);
+        xs->items = realloc(xs->items, xs->capacity * sizeof(Intersection));
         if (!xs->items) {
             return 1;
         }
@@ -29,8 +29,8 @@ int intersection_list_add(IntersectionList *xs, Intersection x)
     // Find the appropriate position for the intersection: t-values must be increasing.
     // OPT: A binary search for the correct insertion point may be more efficient when array gets large.
     size_t home = xs->count;
-    for (size_t i = 0; i < xs->count - 1; i++) {
-        if (xs->items[i + 1].t >= x.t) {
+    for (size_t i = 0; i < xs->count; i++) {
+        if (xs->items[i].t >= x.t) {
             home = i;
             break;
         }
@@ -110,4 +110,51 @@ Intersection *hit(IntersectionList intersections) {
         }
     }
     return best_ptr;
+}
+
+IntersectionData ray_prepare_computations(Ray r, Intersection i)
+{
+    IntersectionData d;
+    d.t = i.t;
+    d.object_ptr = i.object_ptr;
+    d.point = ray_position(r, d.t);
+    d.eyev = d4_neg(r.direction);
+    d.normalv = sphere_normal(*d.object_ptr, d.point);
+
+    // Handle case where eye is *inside* the object, so normal vector points away
+    if (d4_dot(d.normalv, d.eyev) < 0.0) {
+        d.normalv = d4_neg(d.normalv);
+        d.inside = 1;
+    } else {
+        d.inside = 0;
+    }
+    return d;
+}
+
+Color shade_hit(World world, IntersectionData data) {
+    Color c = color_black();
+    for (size_t i = 0; i < world.light_count; i++) {
+        PointLight light = world.lights[i];
+        Color contribution = lighting_compute(
+            data.object_ptr->material,
+            light,
+            data.point,
+            data.eyev,
+            data.normalv
+        );
+        c = color_add(c, contribution);
+    }
+    return c;
+}
+
+Color ray_color_at(Ray ray, World world) {
+    IntersectionList xs = ray_intersect_world(ray, world);
+    Intersection *h = hit(xs);
+    if (!h) {
+        return color_black();
+    }
+
+    IntersectionData data = ray_prepare_computations(ray, *h);
+    Color c = shade_hit(world, data);
+    return c;
 }
