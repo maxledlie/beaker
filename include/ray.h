@@ -4,22 +4,34 @@
 #include <vector.h>
 #include <matrix.h>
 #include <geometry.h>
+#include <world.h>
 
-typedef struct Ray {
-    Vec4D origin; 
-    Vec4D direction;
-} Ray;
+// ----------------------------------
+// Intersection management
+// ----------------------------------
 
 typedef struct Intersection {
-    // TODO: Add pointer to object we intersected with
     double t;
     Sphere *object_ptr;
 } Intersection;
 
 typedef struct IntersectionList {
     size_t count;
+    size_t capacity;
     Intersection *items;
 } IntersectionList;
+
+IntersectionList intersection_list_new();
+int intersection_list_add(IntersectionList *xs, Intersection x);
+
+// ----------------------------------
+// Rays
+// ----------------------------------
+
+typedef struct Ray {
+    Vec4D origin; 
+    Vec4D direction;
+} Ray;
 
 /// Returns the ray that would result from applying the given tranformation to the given input ray.
 Ray ray_transform(Ray ray, Mat4D transform);
@@ -27,7 +39,8 @@ Ray ray_transform(Ray ray, Mat4D transform);
 /// Returns the point the given distance along the ray.
 Vec4D ray_position(Ray ray, double t);
 
-/// Returns the t-values at which the given ray intersects a unit sphere at the origin.
+/// Returns the t-values at which the given ray intersects various objects.
+IntersectionList ray_intersect_world(Ray ray, World world);
 IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere);
 
 /// Returns the intersection with the smallest positive t-value,
