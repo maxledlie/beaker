@@ -1,5 +1,9 @@
 #include <color.h>
 
+Color color_rgb(double r, double g, double b) {
+    return (Color) { r, g, b };
+}
+
 Color color_add(Color a, Color b) {
     Color ret = {
         a.r + b.r,

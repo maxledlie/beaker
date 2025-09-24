@@ -33,6 +33,15 @@ int assert_eq_int(int actual, int expected) {
     return 1;
 }
 
+int assert_eq_size_t(size_t actual, size_t expected) {
+    if (actual != expected) {
+        printf("Expected %zu but was %zu\n", expected, actual);
+        return 0;
+    }
+
+    return 1;
+}
+
 int assert_eq_ptr(void *actual, void *expected) {
     if (actual != expected) {
         printf("Expected pointer to address %p but was %p\n", expected, actual);

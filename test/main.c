@@ -59,12 +59,13 @@ void test_sphere_normal__translated() {
 
 void test_hit__all_intersections_positive_t() {
     Sphere sphere = sphere_new();
+    IntersectionList xs = intersection_list_new();
     Intersection i1 = { 1.0, &sphere };
     Intersection i2 = { 2.0, &sphere };
-    Intersection items[] = { i2, i1 };
-    IntersectionList xs = { 2, items };
+    intersection_list_add(&xs, i1);
+    intersection_list_add(&xs, i2);
     Intersection *i = hit(xs);
-    assert_eq_ptr(i, &items[1]);
+    assert_eq_ptr(i, &xs.items[1]);
 }
 
 /// --------------------------
@@ -117,6 +118,23 @@ void test_lighting__eye_in_path_of_reflection_vector() {
     assert_eq_double(result.b, 1.6364, 0.00001);
 }
 
+// ------------------------
+// Making a Scene
+// ------------------------
+
+/// Intersects a ray with the default world. Since there are two concentric spheres,
+/// there should be four intersection points.
+void test_ray_intersect_world__default_world() {
+    World w = world_default();
+    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
+    IntersectionList xs = ray_intersect_world(r, w);
+    assert_eq_size_t(xs.count, 4);
+    assert_eq_double(xs.items[0].t, 4.0, TOL);
+    assert_eq_double(xs.items[1].t, 4.5, TOL);
+    assert_eq_double(xs.items[2].t, 5.5, TOL);
+    assert_eq_double(xs.items[3].t, 6.0, TOL);
+}
+
 int main() {
     test_matrix_inverse();
 
@@ -131,6 +149,8 @@ int main() {
     test_lighting__eye_between_light_and_surface();
     test_lighting__eye_between_light_and_surface__eye_offset_45();
     test_lighting__eye_in_path_of_reflection_vector();
+
+    test_ray_intersect_world__default_world();
 
     printf("Testing complete\n");
 }

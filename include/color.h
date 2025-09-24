@@ -8,6 +8,7 @@ typedef struct Color {
     double b;
 } Color;
 
+Color color_rgb(double r, double g, double b);
 Color color_add(Color a, Color b);
 Color color_sub(Color a, Color b);
 Color color_mul(Color a, double scale);
