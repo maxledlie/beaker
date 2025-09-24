@@ -24,6 +24,15 @@ typedef struct IntersectionList {
 IntersectionList intersection_list_new();
 int intersection_list_add(IntersectionList *xs, Intersection x);
 
+typedef struct IntersectionData {
+    double t;
+    Sphere *object_ptr;
+    Vec4D point;
+    Vec4D eyev;
+    Vec4D normalv;
+    int inside;
+} IntersectionData;
+
 // ----------------------------------
 // Rays
 // ----------------------------------
@@ -46,3 +55,6 @@ IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere);
 /// Returns the intersection with the smallest positive t-value,
 /// or NULL if intersection list is empty or has only negative t-values.
 Intersection *hit(IntersectionList intersections);
+
+IntersectionData ray_prepare_computations(Ray r, Intersection i);
+Color ray_color_at(Ray ray, World world);

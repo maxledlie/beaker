@@ -29,23 +29,23 @@ int main() {
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
 
+    World world = world_new();
+    world.object_count = 1;
+    world.objects = malloc(sizeof(Sphere));
+    world.objects[0] = sphere;
+    world.light_count = 1;
+    world.lights = malloc(sizeof(PointLight));
+    world.lights[0] = light;
+
     for (int y = 0; y < canvas_pixels; y++) {
         double world_y = half - pixel_size * y;
         for (int x = 0; x < canvas_pixels; x++) {
-                double world_x = -half + pixel_size * x;
-                Vec4D position = d4_point(world_x, world_y, wall_z);
-                Ray r = { ray_origin, d4_norm(d4_sub(position, ray_origin)) };
-                IntersectionList xs = ray_intersect_sphere(r, sphere);
-
-                Intersection *h = hit(xs);
-                if (h) {
-                    Vec4D point = ray_position(r, h->t);
-                    Vec4D normal = sphere_normal(sphere, point);
-                    Vec4D eye = d4_neg(r.direction);
-                    Color c = lighting_compute(sphere.material, light, point, eye, normal);
-                    canvas_pixel_set(canvas, x, y, c);
-                }
-            }
+            double world_x = -half + pixel_size * x;
+            Vec4D position = d4_point(world_x, world_y, wall_z);
+            Ray r = { ray_origin, d4_norm(d4_sub(position, ray_origin)) };
+            Color c = ray_color_at(r, world);
+            canvas_pixel_set(canvas, x, y, c);
+        }
     }
     canvas_save_ppm(canvas, "out.ppm");
 }

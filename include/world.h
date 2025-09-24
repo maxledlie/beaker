@@ -3,7 +3,7 @@
 
 typedef struct World {
     size_t light_count;
-    PointLight *light;
+    PointLight *lights;
     size_t object_count;
     Sphere *objects;
 } World;

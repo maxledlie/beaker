@@ -62,10 +62,10 @@ void test_hit__all_intersections_positive_t() {
     IntersectionList xs = intersection_list_new();
     Intersection i1 = { 1.0, &sphere };
     Intersection i2 = { 2.0, &sphere };
-    intersection_list_add(&xs, i1);
     intersection_list_add(&xs, i2);
+    intersection_list_add(&xs, i1);
     Intersection *i = hit(xs);
-    assert_eq_ptr(i, &xs.items[1]);
+    assert_eq_double(i->t, 1.0, TOL);
 }
 
 /// --------------------------
@@ -133,6 +133,9 @@ void test_ray_intersect_world__default_world() {
     assert_eq_double(xs.items[1].t, 4.5, TOL);
     assert_eq_double(xs.items[2].t, 5.5, TOL);
     assert_eq_double(xs.items[3].t, 6.0, TOL);
+}
+
+void test_color_at__ray_misses() {
 }
 
 int main() {
