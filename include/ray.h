@@ -10,12 +10,12 @@
 // Intersection management
 // ----------------------------------
 
-typedef struct Intersection {
+typedef struct {
     double t;
     Sphere *object_ptr;
 } Intersection;
 
-typedef struct IntersectionList {
+typedef struct {
     size_t count;
     size_t capacity;
     Intersection *items;
@@ -24,7 +24,7 @@ typedef struct IntersectionList {
 IntersectionList intersection_list_new();
 int intersection_list_add(IntersectionList *xs, Intersection x);
 
-typedef struct IntersectionData {
+typedef struct {
     double t;
     Sphere *object_ptr;
     Vec4D point;
@@ -57,4 +57,4 @@ IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere);
 Intersection *hit(IntersectionList intersections);
 
 IntersectionData ray_prepare_computations(Ray r, Intersection i);
-Color ray_color_at(Ray ray, World world);
+Color ray_color(Ray ray, World world);

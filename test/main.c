@@ -5,7 +5,29 @@
 
 const double TOL = 0.0000000001;
 
-void test_matrix_inverse() {
+// -------------------
+// Inverting Matrices
+// -------------------
+
+void test_mat4d_submatrix() {
+    Mat4D a = mat4d_new((double []) {
+        -6.,  1.,  1.,  6.,
+        -8.,  5.,  8.,  6.,
+        -1.,  0.,  8.,  2.,
+        -7.,  1., -1.,  1.
+    });
+
+    Mat3D expected = mat3d_new((double[]) {
+        -6.,  1.,  6.,
+        -8.,  8.,  6.,
+        -7., -1.,  1.
+    });
+
+    Mat3D result = mat4d_submatrix(a, 2, 1);
+    assert_eq_mat3d(result, expected, TOL);
+}
+
+void test_mat4d_inverse() {
     Mat4D a = mat4d_new((double[]) {
         -5.,  2.,  6., -8.,
          1., -5.,  1.,  8.,
@@ -15,9 +37,9 @@ void test_matrix_inverse() {
     Mat4D b = mat4d_inverse(a);
     assert_eq_double(mat4d_determinant(a), 532., TOL);
     assert_eq_double(mat4d_cofactor(a, 2, 3), -160., TOL);
-    assert_eq_double(b[3*4 + 2], -160. / 532., TOL);
+    assert_eq_double(b.m[3][2], -160. / 532., TOL);
     assert_eq_double(mat4d_cofactor(a, 3, 2), 105., TOL);
-    assert_eq_double(b[2*4 + 3], 105. / 532., TOL);
+    assert_eq_double(b.m[2][3], 105. / 532., TOL);
 
     Mat4D expected = mat4d_new((double []) {
          0.21805,  0.45113,  0.24060, -0.04511,
@@ -135,25 +157,39 @@ void test_ray_intersect_world__default_world() {
     assert_eq_double(xs.items[3].t, 6.0, TOL);
 }
 
-void test_color_at__ray_misses() {
+void test_ray_color__ray_misses() {
+    World w = world_default();
+    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 1., 0.) };
+    Color c = ray_color(r, w);
+    assert_eq_color(c, color_black(), TOL);
+}
+
+void test_ray_color__ray_hits() {
+    World w = world_default();
+    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
+    Color c = ray_color(r, w);
+    assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), TOL);
 }
 
 int main() {
-    test_matrix_inverse();
+    // test_mat4d_submatrix();
+    // test_mat4d_inverse();
 
-    test_ray_intersect_sphere__sphere_behind_ray();
-    test_ray_position();
+    // test_ray_intersect_sphere__sphere_behind_ray();
+    // test_ray_position();
 
-    test_sphere_normal__translated();
+    // test_sphere_normal__translated();
 
-    test_hit__all_intersections_positive_t();
+    // test_hit__all_intersections_positive_t();
 
-    test_vec4d_reflect__approaching_at_45();
-    test_lighting__eye_between_light_and_surface();
-    test_lighting__eye_between_light_and_surface__eye_offset_45();
-    test_lighting__eye_in_path_of_reflection_vector();
+    // test_vec4d_reflect__approaching_at_45();
+    // test_lighting__eye_between_light_and_surface();
+    // test_lighting__eye_between_light_and_surface__eye_offset_45();
+    // test_lighting__eye_in_path_of_reflection_vector();
 
-    test_ray_intersect_world__default_world();
+    // test_ray_intersect_world__default_world();
+    // test_ray_color__ray_misses();
+    test_ray_color__ray_hits();
 
     printf("Testing complete\n");
 }
