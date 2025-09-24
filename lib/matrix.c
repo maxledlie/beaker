@@ -6,74 +6,71 @@
 #include <matrix.h>
 
 double mat2d_determinant(Mat2D a) {
-    return a[0] * a[3] - a[1] * a[2];
+    return a.m[0][0] * a.m[1][1] - a.m[0][1] * a.m[1][0];
 }
 
 Mat4D mat4d_new(double vals[16]) {
-    double *ptr = (double *)malloc(16 * sizeof(double));
+    Mat4D result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            int idx = i * 4 + j;
-            ptr[idx] = vals[idx];
+            result.m[i][j] = vals[4*i + j];
         }
     }
-    return ptr;
+    return result;
 }
 
 Mat4D mat4d_identity()
 {
-    double *ptr = (double *)malloc(16 * sizeof(double));
+    Mat4D result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            int idx = i * 4 + j;
-            double val = i == j ? 1.0 : 0.0;
-            ptr[idx] = val;
+            result.m[i][j] = (i == j) ? 1.0 : 0.0;
         }
     }
-    return ptr;
+    return result;
 }
 
 Mat4D mat4d_mul_mat4d(Mat4D a, Mat4D b)
 {
-    double *ptr = (double *)malloc(16 * sizeof(double));
+    Mat4D result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             double x = 0.0;
             for (int k = 0; k < 4; k++) {
-                x += a[4*i + k] * b[4*k + j];
+                x += a.m[i][k] * b.m[k][j];
             }
-            ptr[4*i + j] = x;
+            result.m[i][j] = x;
         }
     }
-    return ptr;
+    return result;
 }
 
 Vec4D mat4d_mul_vec4d(Mat4D a, Vec4D b)
 {
-    Vec4D ret = { 0.0, 0.0, 0.0, 0.0 };
-    ret.x = a[0] * b.x + a[1] * b.y + a[2] * b.z + a[3] * b.w;
-    ret.y = a[4] * b.x + a[5] * b.y + a[6] * b.z + a[7] * b.w;
-    ret.z = a[8] * b.x + a[9] * b.y + a[10] * b.z + a[11] * b.w;
-    ret.w = a[12] * b.x + a[13] * b.y + a[14] * b.z + a[15] * b.w;
-    return ret;
+    Vec4D result;
+    result.x = a.m[0][0] * b.x + a.m[0][1] * b.y + a.m[0][2] * b.z + a.m[0][3] * b.w;
+    result.y = a.m[1][0] * b.x + a.m[1][1] * b.y + a.m[1][2] * b.z + a.m[1][3] * b.w;
+    result.z = a.m[2][0] * b.x + a.m[2][1] * b.y + a.m[2][2] * b.z + a.m[2][3] * b.w;
+    result.w = a.m[3][0] * b.x + a.m[3][1] * b.y + a.m[3][2] * b.z + a.m[3][3] * b.w;
+    return result;
 }
 
 Mat4D mat4d_transpose(Mat4D a)
 {
-    double *ptr = (double *)malloc(16 * sizeof(double));
+    Mat4D result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            ptr[4*i + j] = a[4*j + i];
+            result.m[i][j] = a.m[j][i];
         }
     }
-    return ptr;
+    return result;
 }
 
 double mat4d_determinant(Mat4D a)
 {
     double ret = 0.0;
     for (int jCol = 0; jCol < 4; jCol++) {
-        ret += a[jCol] * mat4d_cofactor(a, 0, jCol);
+        ret += a.m[0][jCol] * mat4d_cofactor(a, 0, jCol);
     }
     return ret;
 }
@@ -95,17 +92,23 @@ Mat4D mat4d_inverse(Mat4D a)
 }
 
 Mat3D mat4d_submatrix(Mat4D a, int iRow, int jCol) {
-    double *ptr = (double *)malloc(9 * sizeof(double));
+    double vals[9];
     int write_index = 0;
     for (int k = 0; k < 16; k++) {
         int i = k / 4;
         int j = k % 4;
         if (i != iRow && j != jCol) {
-            ptr[write_index++] = a[k];
+            vals[write_index++] = a.m[i][j];
         }
     }
-    return ptr;
 
+    Mat3D result;
+    for (int k = 0; k < 9; k++) {
+        int i = k / 3;
+        int j = k % 3;
+        result.m[i][j] = vals[k];
+    }
+    return result;
 }
 
 double mat4d_minor(Mat4D a, int iRow, int jCol) {
@@ -120,22 +123,40 @@ double mat4d_cofactor(Mat4D a, int iRow, int jCol) {
 
 void mat4d_dbg(Mat4D a) {
     for (int iRow = 0; iRow < 4; iRow++) {
-        int x = 4 * iRow;
-        printf("| %6f  %6f  %6f  %6f |\n", a[x], a[x+1], a[x+2], a[x+3]);
+        printf("| %6f  %6f  %6f  %6f |\n", a.m[iRow][0], a.m[iRow][1], a.m[iRow][2], a.m[iRow][3]);
     }
 }
 
-Mat2D mat3d_submatrix(Mat3D a, int iRow, int jCol) {
-    double *ptr = (double *)malloc(4 * sizeof(double));
+Mat3D mat3d_new(double vals[9])
+{
+    Mat3D result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = vals[3*i + j];
+        }
+    }
+    return result;
+}
+
+Mat2D mat3d_submatrix(Mat3D a, int iRow, int jCol)
+{
+    double vals[4];
     int write_index = 0;
     for (int k = 0; k < 9; k++) {
         int i = k / 3;
         int j = k % 3;
         if (i != iRow && j != jCol) {
-            ptr[write_index++] = a[k];
+            vals[write_index++] = a.m[i][j];
         }
     }
-    return ptr;
+
+    Mat2D result;
+    for (int k = 0; k < 4; k++) {
+        int i = k / 2;
+        int j = k % 2;
+        result.m[i][j] = vals[k];
+    }
+    return result;
 }
 
 double mat3d_minor(Mat3D a, int iRow, int jCol) {
@@ -150,7 +171,7 @@ double mat3d_cofactor(Mat3D a, int iRow, int jCol) {
 double mat3d_determinant(Mat3D a) {
     double ret = 0.0;
     for (int jCol = 0; jCol < 3; jCol++) {
-        ret += a[jCol] * mat3d_cofactor(a, 0, jCol);
+        ret += a.m[0][jCol] * mat3d_cofactor(a, 0, jCol);
     }
     return ret;
 }

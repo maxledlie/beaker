@@ -6,6 +6,7 @@
 
 #include <vector.h>
 #include <matrix.h>
+#include <color.h>
 
 int assert_eq_double(double actual, double expected, double tol) {
     if (tol == 0) {
@@ -57,10 +58,28 @@ int assert_eq_vec4d(Vec4D actual, Vec4D expected, double tol) {
         assert_eq_double(actual.w, expected.w, tol);
 }
 
+int assert_eq_color(Color actual, Color expected, double tol) {
+    return assert_eq_double(actual.r, expected.r, tol) &&
+        assert_eq_double(actual.g, expected.g, tol) &&
+        assert_eq_double(actual.b, expected.b, tol);
+}
+
 int assert_eq_mat4d(Mat4D actual, Mat4D expected, double tol) {
     int pass = 1;
-    for (int i = 0; i < 16; i++) {
-        pass = pass && assert_eq_double(actual[i], expected[i], tol);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            pass = pass && assert_eq_double(actual.m[i][j], expected.m[i][j], tol);
+        }
+    }
+    return pass;
+}
+
+int assert_eq_mat3d(Mat3D actual, Mat3D expected, double tol) {
+    int pass = 1;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            pass = pass && assert_eq_double(actual.m[i][j], expected.m[i][j], tol);
+        }
     }
     return pass;
 }

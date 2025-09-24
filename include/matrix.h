@@ -4,9 +4,17 @@
 
 #include <vector.h>
 
-typedef double* Mat4D;
-typedef double* Mat3D;
-typedef double* Mat2D;
+typedef struct {
+    double m[4][4];
+} Mat4D;
+
+typedef struct {
+    double m[3][3];
+} Mat3D;
+
+typedef struct {
+    double m[2][2];
+} Mat2D;
 
 // 4D matrices
 Mat4D mat4d_new(double vals[16]);
@@ -22,6 +30,7 @@ double mat4d_cofactor(Mat4D a, int iRow, int jCol);
 void mat4d_dbg(Mat4D a);
 
 // 3D matrices
+Mat3D mat3d_new(double vals[9]);
 Mat2D mat3d_submatrix(Mat3D a, int iRow, int jCol);
 double mat3d_minor(Mat3D a, int iRow, int jCol);
 double mat3d_cofactor(Mat3D a, int iRow, int jCol);

@@ -55,7 +55,9 @@ Ray ray_transform(Ray ray, Mat4D transform)
 
 Vec4D ray_position(Ray ray, double t)
 {
-    return d4_add(ray.origin, d4_mul(ray.direction, t));
+    Vec4D delta = d4_mul(ray.direction, t);
+    Vec4D result = d4_add(ray.origin, delta);
+    return result;
 }
 
 IntersectionList ray_intersect_sphere(Ray ray, Sphere sphere)
@@ -147,7 +149,7 @@ Color shade_hit(World world, IntersectionData data) {
     return c;
 }
 
-Color ray_color_at(Ray ray, World world) {
+Color ray_color(Ray ray, World world) {
     IntersectionList xs = ray_intersect_world(ray, world);
     Intersection *h = hit(xs);
     if (!h) {
