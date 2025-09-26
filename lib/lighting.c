@@ -1,6 +1,6 @@
 #include <lighting.h>
 
-Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D eye, Vec4D normal) {
+Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D eye, Vec4D normal, int in_shadow) {
     Color ambient, diffuse, specular;
 
     // Combine the surface color with the light's color/intensity
@@ -11,6 +11,10 @@ Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D e
 
     // Compute ambient contribution
     ambient = color_mul(effective_color, material.ambient);
+
+    if (in_shadow) {
+        return ambient;
+    }
 
     // If negative, light is "inside" the object
     double light_dot_normal = d4_dot(lightv, normal);

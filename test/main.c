@@ -108,7 +108,7 @@ void test_lighting__eye_between_light_and_surface() {
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
 
-    Color result = lighting_compute(m, light, position, eyev, normalv);
+    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.9, TOL);
     assert_eq_double(result.g, 1.9, TOL);
     assert_eq_double(result.b, 1.9, TOL);
@@ -121,7 +121,7 @@ void test_lighting__eye_between_light_and_surface__eye_offset_45() {
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
 
-    Color result = lighting_compute(m, light, position, eyev, normalv);
+    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.0, TOL);
     assert_eq_double(result.g, 1.0, TOL);
     assert_eq_double(result.b, 1.0, TOL);
@@ -134,7 +134,7 @@ void test_lighting__eye_in_path_of_reflection_vector() {
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 10., -10.), (Color) { 1., 1., 1. }};
 
-    Color result = lighting_compute(m, light, position, eyev, normalv);
+    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.6364, 0.00001);
     assert_eq_double(result.g, 1.6364, 0.00001);
     assert_eq_double(result.b, 1.6364, 0.00001);
@@ -147,15 +147,24 @@ void test_lighting__eye_in_path_of_reflection_vector() {
 void test_ray_color__ray_misses() {
     World w = world_default();
     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 1., 0.) };
-    Color c = ray_color(r, w.light_count, w.lights, w.object_count, w.objects);
+    Color c = ray_color(r, w);
     assert_eq_color(c, color_black(), TOL);
 }
 
 void test_ray_color__ray_hits() {
     World w = world_default();
     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
-    Color c = ray_color(r, w.light_count, w.lights, w.object_count, w.objects);
+    Color c = ray_color(r, w);
     assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), 0.00001);
+}
+
+void test_ray_color__intersection_behind_ray() {
+    World w = world_default();
+    w.objects[0].material.ambient = 1.0;
+    w.objects[1].material.ambient = 1.0;
+    Ray r = (Ray) { d4_point(0., 0., 0.75), d4_vector(0., 0., -1.) };
+    Color c = ray_color(r, w);
+    assert_eq_color(c, w.objects[1].material.color, TOL);
 }
 
 int main() {
@@ -176,6 +185,7 @@ int main() {
 
     test_ray_color__ray_misses();
     test_ray_color__ray_hits();
+    test_ray_color__intersection_behind_ray();
 
     printf("Testing complete\n");
 }

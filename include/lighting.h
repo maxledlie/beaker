@@ -10,6 +10,6 @@ typedef struct PointLight {
     Color intensity;
 } PointLight;
 
-Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D eye, Vec4D normal);
+Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D eye, Vec4D normal, int in_shadow);
 
 

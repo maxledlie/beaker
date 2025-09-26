@@ -5,6 +5,7 @@
 #include <matrix.h>
 #include <geometry.h>
 #include <world.h>
+#include <camera.h>
 
 // ----------------------------------
 // Intersection management
@@ -28,6 +29,7 @@ typedef struct {
     double t;
     Sphere *object_ptr;
     Vec4D point;
+    Vec4D over_point;
     Vec4D eyev;
     Vec4D normalv;
     int inside;
@@ -42,13 +44,16 @@ typedef struct Ray {
     Vec4D direction;
 } Ray;
 
-/// Returns the ray that would result from applying the given tranformation to the given input ray.
+Ray ray_at_pixel(Camera camera, int px, int py);
+
+/// Returns the ray that would result from applying the given transformation to the given input ray.
 Ray ray_transform(Ray ray, Mat4D transform);
 
 /// Returns the point the given distance along the ray.
 Vec4D ray_position(Ray ray, double t);
 
 /// Returns the t-values at which the given ray intersects various objects.
+IntersectionList ray_intersect_world(Ray ray, size_t object_count, Sphere *objects);
 IntersectionList ray_intersect_sphere(Ray ray, Sphere *sphere);
 
 /// Returns the intersection with the smallest positive t-value,
@@ -57,8 +62,5 @@ Intersection *hit(IntersectionList intersections);
 
 Color ray_color(
     Ray ray,
-    size_t light_count,
-    PointLight *lights,
-    size_t object_count,
-    Sphere *objects
+    World world
 );

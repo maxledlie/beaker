@@ -1,3 +1,5 @@
+#pragma once
+
 #include <lighting.h>
 #include <geometry.h>
 
@@ -10,3 +12,4 @@ typedef struct World {
 
 World world_new();
 World world_default();
+int is_point_shadowed(Vec4D point, PointLight light, int object_count, Sphere *objects);
