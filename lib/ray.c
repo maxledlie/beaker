@@ -7,6 +7,7 @@
 #include <geometry.h>
 
 const size_t BASE_INTERSECTION_COUNT = 128;
+const double EPSILON = 0.0000001;
 
 /// Creates a new, dynamically sized, always-sorted, insert-only list of intersections
 IntersectionList intersection_list_new() {
@@ -44,6 +45,26 @@ int intersection_list_add(IntersectionList *xs, Intersection x)
     xs->items[home] = x;
     xs->count += 1;
     return 0;
+}
+
+Ray ray_at_pixel(Camera camera, int px, int py)
+{
+    // Offset from edge of canvas to pixel's center
+    double xoffset = (px + 0.5) * camera.pixel_size;
+    double yoffset = (py + 0.5) * camera.pixel_size;
+
+    // Untransformed coordinates of the pixel in world space.
+    double world_x = camera.half_width - xoffset;
+    double world_y = camera.half_height - yoffset;
+
+    // Using the camera matrix, transform the canvas point and the origin,
+    // and then compute the ray's direction vector.
+    Mat4D inv = mat4d_inverse(camera.transform);
+    Vec4D pixel = mat4d_mul_vec4d(inv, d4_point(world_x, world_y, -1));
+    Vec4D origin = mat4d_mul_vec4d(inv, d4_point(0., 0., 0.));
+    Vec4D direction = d4_norm(d4_sub(pixel, origin));
+    
+    return (Ray){ origin, direction };
 }
 
 Ray ray_transform(Ray ray, Mat4D transform)
@@ -122,6 +143,7 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     d.point = ray_position(r, d.t);
     d.eyev = d4_neg(r.direction);
     d.normalv = sphere_normal(d.object_ptr, d.point);
+    d.over_point = d4_add(d.point, d4_mul(d.normalv, EPSILON));
 
     // Handle case where eye is *inside* the object, so normal vector points away
     if (d4_dot(d.normalv, d.eyev) < 0.0) {
@@ -133,30 +155,34 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     return d;
 }
 
-Color shade_hit(size_t light_count, PointLight *lights, IntersectionData data) {
+Color shade_hit(World world, IntersectionData data) {
     Color c = color_black();
-    for (size_t i = 0; i < light_count; i++) {
-        PointLight light = lights[i];
+    for (size_t i = 0; i < world.light_count; i++) {
+        PointLight light = world.lights[i];
+        if (is_point_shadowed(data.over_point, light, world.object_count, world.objects)) {
+            continue;
+        }
         Color contribution = lighting_compute(
             data.object_ptr->material,
             light,
             data.point,
             data.eyev,
-            data.normalv
+            data.normalv,
+            0
         );
         c = color_add(c, contribution);
     }
     return c;
 }
 
-Color ray_color(Ray ray, size_t light_count, PointLight *lights, size_t object_count, Sphere *objects) {
-    IntersectionList xs = ray_intersect_world(ray, object_count, objects);
+Color ray_color(Ray ray, World world) {
+    IntersectionList xs = ray_intersect_world(ray, world.object_count, world.objects);
     Intersection *h = hit(xs);
     if (!h) {
         return color_black();
     }
 
     IntersectionData data = ray_prepare_computations(ray, *h);
-    Color c = shade_hit(light_count, lights, data);
+    Color c = shade_hit(world, data);
     return c;
 }

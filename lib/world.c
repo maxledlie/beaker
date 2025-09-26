@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include <world.h>
+#include <ray.h>
 
 /// Returns an empty world with no light and no objects
 World world_new()
@@ -25,4 +26,17 @@ World world_default()
     objects[1].transform = scaling(0.5, 0.5, 0.5);
 
     return (World) { 1, lights, 2, objects};
+}
+
+int is_point_shadowed(Vec4D point, PointLight light, int object_count, Sphere *objects)
+{
+    Vec4D v = d4_sub(light.position, point);
+    double distance = d4_mag(v);
+    Vec4D direction = d4_norm(v);
+
+    Ray r = (Ray) { point, direction };
+    IntersectionList xs = ray_intersect_world(r, object_count, objects);
+
+    Intersection *h = hit(xs);
+    return h && h->t < distance;
 }
