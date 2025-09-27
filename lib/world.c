@@ -16,9 +16,9 @@ World world_default()
     PointLight *lights = malloc(sizeof(PointLight));
     lights[0] = (PointLight) { d4_point(-10., 10., -10.), color_rgb(1., 1., 1.) };
 
-    Sphere *objects = malloc(2 * sizeof(Sphere));
+    Shape *objects = malloc(2 * sizeof(Shape));
     objects[0] = sphere_new();
-    objects[0].material.color = color_rgb(0.8, 1.0, 0.6);
+    objects[0].material.pattern = pattern_plain_new(color_rgb(0.8, 1.0, 0.6));
     objects[0].material.diffuse = 0.7;
     objects[0].material.specular = 0.2;
 
@@ -28,7 +28,7 @@ World world_default()
     return (World) { 1, lights, 2, objects};
 }
 
-int is_point_shadowed(Vec4D point, PointLight light, int object_count, Sphere *objects)
+int is_point_shadowed(Vec4D point, PointLight light, int object_count, Shape *objects)
 {
     Vec4D v = d4_sub(light.position, point);
     double distance = d4_mag(v);

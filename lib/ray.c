@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -81,17 +82,12 @@ Vec4D ray_position(Ray ray, double t)
     return result;
 }
 
-IntersectionList ray_intersect_sphere(Ray ray, Sphere *sphere)
-{
-    // Transform the ray into the sphere's object space
-    Mat4D inv = mat4d_inverse(sphere->transform);
-    Ray r = ray_transform(ray, inv);
-
+IntersectionList ray_intersect_sphere(Ray ray, Shape *sphere) {
     // Vector from sphere's centre to ray origin
-    Vec4D sphere_to_ray = d4_sub(r.origin, d4_point(0., 0., 0.));
+    Vec4D sphere_to_ray = d4_sub(ray.origin, d4_point(0., 0., 0.));
 
-    double a = d4_dot(r.direction, r.direction);
-    double b = 2 * d4_dot(r.direction, sphere_to_ray);
+    double a = d4_dot(ray.direction, ray.direction);
+    double b = 2 * d4_dot(ray.direction, sphere_to_ray);
     double c = d4_dot(sphere_to_ray, sphere_to_ray) - 1;
 
     double discriminant = b * b - 4 * a * c;
@@ -110,11 +106,39 @@ IntersectionList ray_intersect_sphere(Ray ray, Sphere *sphere)
     return xs;
 }
 
-IntersectionList ray_intersect_world(Ray ray, size_t object_count, Sphere *objects)
+IntersectionList ray_intersect_plane(Ray ray, Shape *plane) {
+    IntersectionList xs = intersection_list_new();
+    if (fabs(ray.direction.y) < EPSILON) {
+        return xs;
+    }
+
+    double t = -ray.origin.y / ray.direction.y;
+    intersection_list_add(&xs, (Intersection) { t, plane });
+    return xs;
+}
+
+IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
+{
+    // Transform the ray into the shape's object space
+    Mat4D inv = mat4d_inverse(shape->transform);
+    Ray r = ray_transform(ray, inv);
+
+    switch (shape->type) {
+        case SHAPE_SPHERE:
+            return ray_intersect_sphere(r, shape);
+        case SHAPE_PLANE:
+            return ray_intersect_plane(r, shape);
+        default:
+            printf("Unrecognised shape %i", shape->type);
+            return intersection_list_new();
+    }
+}
+
+IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects)
 {
     IntersectionList xs = intersection_list_new();
     for (size_t i = 0; i < object_count; i++) {
-        IntersectionList sub_xs = ray_intersect_sphere(ray, &objects[i]);
+        IntersectionList sub_xs = ray_intersect_shape(ray, &objects[i]);
         for (size_t j = 0; j < sub_xs.count; j++) {
             intersection_list_add(&xs, sub_xs.items[j]);
         }
@@ -142,7 +166,7 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     d.object_ptr = i.object_ptr;
     d.point = ray_position(r, d.t);
     d.eyev = d4_neg(r.direction);
-    d.normalv = sphere_normal(d.object_ptr, d.point);
+    d.normalv = shape_normal(d.object_ptr, d.point);
     d.over_point = d4_add(d.point, d4_mul(d.normalv, EPSILON));
 
     // Handle case where eye is *inside* the object, so normal vector points away
@@ -159,16 +183,14 @@ Color shade_hit(World world, IntersectionData data) {
     Color c = color_black();
     for (size_t i = 0; i < world.light_count; i++) {
         PointLight light = world.lights[i];
-        if (is_point_shadowed(data.over_point, light, world.object_count, world.objects)) {
-            continue;
-        }
+        int in_shadow = is_point_shadowed(data.over_point, light, world.object_count, world.objects);
         Color contribution = lighting_compute(
-            data.object_ptr->material,
+            *data.object_ptr,
             light,
             data.point,
             data.eyev,
             data.normalv,
-            0
+            in_shadow
         );
         c = color_add(c, contribution);
     }

@@ -4,12 +4,13 @@
 
 #include <vector.h>
 #include <material.h>
+#include <geometry.h>
 
 typedef struct PointLight {
     Vec4D position;
     Color intensity;
 } PointLight;
 
-Color lighting_compute(Material material, PointLight light, Vec4D point, Vec4D eye, Vec4D normal, int in_shadow);
+Color lighting_compute(Shape object, PointLight light, Vec4D point, Vec4D eye, Vec4D normal, int in_shadow);
 
 

@@ -57,8 +57,8 @@ void test_mat4d_inverse() {
 /// A sphere is behind a ray
 void test_ray_intersect_sphere__sphere_behind_ray() {
     Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
-    Sphere sphere = sphere_new();
-    IntersectionList xs = ray_intersect_sphere(ray, &sphere);
+    Shape sphere = sphere_new();
+    IntersectionList xs = ray_intersect_shape(ray, &sphere);
     assert_eq_int(xs.count, 2);
     assert_eq_double(xs.items[0].t, -6.0, TOL);
     assert_eq_double(xs.items[1].t, -4.0, TOL);
@@ -73,14 +73,14 @@ void test_ray_position() {
 }
 
 void test_sphere_normal__translated() {
-    Sphere sphere = sphere_new();
+    Shape sphere = sphere_new();
     sphere.transform = translation(0.0, 1.0, 0.0);
-    Vec4D n = sphere_normal(&sphere, d4_point(0.0, 1.70711, -0.70711));
+    Vec4D n = shape_normal(&sphere, d4_point(0.0, 1.70711, -0.70711));
     assert_eq_vec4d(n, d4_vector(0.0, 0.70711, -0.70711), 0.00001);
 }
 
 void test_hit__all_intersections_positive_t() {
-    Sphere sphere = sphere_new();
+    Shape sphere = sphere_new();
     IntersectionList xs = intersection_list_new();
     Intersection i1 = { 1.0, &sphere };
     Intersection i2 = { 2.0, &sphere };
@@ -107,8 +107,10 @@ void test_lighting__eye_between_light_and_surface() {
     Vec4D eyev = d4_vector(0., 0., -1.);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
+    Shape obj = sphere_new();
+    obj.material = m;
 
-    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
+    Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.9, TOL);
     assert_eq_double(result.g, 1.9, TOL);
     assert_eq_double(result.b, 1.9, TOL);
@@ -120,8 +122,10 @@ void test_lighting__eye_between_light_and_surface__eye_offset_45() {
     Vec4D eyev = d4_vector(0., sqrt(2) / 2.0, -sqrt(2) / 2.0);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
+    Shape obj = sphere_new();
+    obj.material = m;
 
-    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
+    Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.0, TOL);
     assert_eq_double(result.g, 1.0, TOL);
     assert_eq_double(result.b, 1.0, TOL);
@@ -133,8 +137,10 @@ void test_lighting__eye_in_path_of_reflection_vector() {
     Vec4D eyev = d4_vector(0., -sqrt(2) / 2.0, -sqrt(2) / 2.0);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 10., -10.), (Color) { 1., 1., 1. }};
+    Shape obj = sphere_new();
+    obj.material = m;
 
-    Color result = lighting_compute(m, light, position, eyev, normalv, 0);
+    Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
     assert_eq_double(result.r, 1.6364, 0.00001);
     assert_eq_double(result.g, 1.6364, 0.00001);
     assert_eq_double(result.b, 1.6364, 0.00001);
@@ -164,7 +170,7 @@ void test_ray_color__intersection_behind_ray() {
     w.objects[1].material.ambient = 1.0;
     Ray r = (Ray) { d4_point(0., 0., 0.75), d4_vector(0., 0., -1.) };
     Color c = ray_color(r, w);
-    assert_eq_color(c, w.objects[1].material.color, TOL);
+    assert_eq_color(c, w.objects[1].material.pattern.a, TOL);
 }
 
 int main() {
