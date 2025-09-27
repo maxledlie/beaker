@@ -20,10 +20,11 @@ int main() {
     Shape middle = sphere_new();
     middle.transform = translation(-0.5, 1.0, 0.5);
     middle.material = material_new();
-    middle.material.diffuse = 0.7;
-    middle.material.specular = 0.3;
+    middle.material.diffuse = 0.05;
+    middle.material.specular = 0.6;
     middle.material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8));
     middle.material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
+    middle.material.reflective = 1.0;
 
     Shape right = sphere_new();
     right.transform = mat4d_mul_mat4d(translation(1.5, 0.5, -0.5), scaling(0.5, 0.5, 0.5));

@@ -168,6 +168,7 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     d.eyev = d4_neg(r.direction);
     d.normalv = shape_normal(d.object_ptr, d.point);
     d.over_point = d4_add(d.point, d4_mul(d.normalv, EPSILON));
+    d.reflectv = d4_reflect(r.direction, d.normalv);
 
     // Handle case where eye is *inside* the object, so normal vector points away
     if (d4_dot(d.normalv, d.eyev) < 0.0) {
@@ -177,6 +178,17 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
         d.inside = 0;
     }
     return d;
+}
+
+Color reflected_color(World w, IntersectionData x) {
+    double reflective = x.object_ptr->material.reflective;
+    if (reflective == 0.0) {
+        return color_black();
+    }
+
+    Ray reflected_ray = (Ray) { x.over_point, x.reflectv };
+    Color c = ray_color(reflected_ray, w);
+    return color_mul(c, reflective);
 }
 
 Color shade_hit(World world, IntersectionData data) {
@@ -192,7 +204,10 @@ Color shade_hit(World world, IntersectionData data) {
             data.normalv,
             in_shadow
         );
+
+        Color reflection = reflected_color(world, data);        
         c = color_add(c, contribution);
+        c = color_add(c, reflection);
     }
     return c;
 }
