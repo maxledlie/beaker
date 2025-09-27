@@ -9,6 +9,7 @@ Material material_new() {
         0.9,
         0.9,
         200.0,
+        0.0
     };
     return ret;
 }

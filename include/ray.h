@@ -33,6 +33,7 @@ typedef struct {
     Vec4D eyev;
     Vec4D normalv;
     int inside;
+    Vec4D reflectv;
 } IntersectionData;
 
 // ----------------------------------

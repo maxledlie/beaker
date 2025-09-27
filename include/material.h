@@ -9,6 +9,7 @@ typedef struct Material {
     double diffuse;
     double specular;
     double shininess;
+    double reflective;
 } Material;
 
 Material material_new();
