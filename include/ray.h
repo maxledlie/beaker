@@ -13,7 +13,7 @@
 
 typedef struct {
     double t;
-    Sphere *object_ptr;
+    Shape *object_ptr;
 } Intersection;
 
 typedef struct {
@@ -27,7 +27,7 @@ int intersection_list_add(IntersectionList *xs, Intersection x);
 
 typedef struct {
     double t;
-    Sphere *object_ptr;
+    Shape *object_ptr;
     Vec4D point;
     Vec4D over_point;
     Vec4D eyev;
@@ -53,8 +53,8 @@ Ray ray_transform(Ray ray, Mat4D transform);
 Vec4D ray_position(Ray ray, double t);
 
 /// Returns the t-values at which the given ray intersects various objects.
-IntersectionList ray_intersect_world(Ray ray, size_t object_count, Sphere *objects);
-IntersectionList ray_intersect_sphere(Ray ray, Sphere *sphere);
+IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects);
+IntersectionList ray_intersect_shape(Ray ray, Shape *shape);
 
 /// Returns the intersection with the smallest positive t-value,
 /// or NULL if intersection list is empty or has only negative t-values.

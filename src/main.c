@@ -14,30 +14,29 @@
 
 
 int main() {
-    Sphere floor = sphere_new();
-    floor.transform = scaling(8., 0.01, 10.);
-    floor.material = material_new();
-    floor.material.color = color_rgb(1.0, 0.9, 0.9);
-    floor.material.specular = 0.;
+    Shape floor = plane_new();
+    floor.material.pattern = pattern_checker_new(color_rgb(0.9, 0.9, 0.9), color_rgb(0.1, 0.1, 0.1));
 
-    Sphere middle = sphere_new();
+    Shape middle = sphere_new();
     middle.transform = translation(-0.5, 1.0, 0.5);
     middle.material = material_new();
-    middle.material.color = color_rgb(0.1, 1.0, 0.5);
     middle.material.diffuse = 0.7;
     middle.material.specular = 0.3;
+    middle.material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8));
+    middle.material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
 
-    Sphere right = sphere_new();
+    Shape right = sphere_new();
     right.transform = mat4d_mul_mat4d(translation(1.5, 0.5, -0.5), scaling(0.5, 0.5, 0.5));
     right.material = material_new();
-    right.material.color = color_rgb(1.0, 0.5, 0.1);
+    right.material.pattern = pattern_plain_new(color_rgb(1.0, 0.5, 0.1));
     right.material.diffuse = 0.7;
-    right.material.specular = 0.3;
+    right.material.specular = 0.6;
+    right.material.shininess = 500;
 
-    Sphere left = sphere_new();
+    Shape left = sphere_new();
     left.transform = mat4d_mul_mat4d(translation(-1.2, 0.8, -0.75), scaling(0.33, 0.8, 0.33));
     left.material = material_new();
-    left.material.color = color_rgb(1.0, 0.8, 0.1);
+    left.material.pattern = pattern_plain_new(color_rgb(1.0, 0.8, 0.1));
     left.material.diffuse = 0.7;
     left.material.specular = 0.3;
 
@@ -47,7 +46,7 @@ int main() {
 
     World world = world_new();
     world.object_count = 4;
-    world.objects = malloc(world.object_count * sizeof(Sphere));
+    world.objects = malloc(world.object_count * sizeof(Shape));
     world.objects[0] = floor;
     world.objects[1] = middle;
     world.objects[2] = right;
@@ -61,7 +60,7 @@ int main() {
         d4_point(0., 1., 0.),
         d4_vector(0., 1., 0.)
     );
-    Camera camera = camera_new(100, 80, M_PI / 3., view);
+    Camera camera = camera_new(1000, 800, M_PI / 3., view);
     Canvas canvas = canvas_create(camera.hsize, camera.vsize);
 
     // Render
