@@ -6,6 +6,7 @@ typedef struct {
     int hsize;
     int vsize;
     Mat4D transform;
+    Mat4D inv_transform;
     double half_width;
     double half_height;
     double pixel_size;

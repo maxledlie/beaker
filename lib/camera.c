@@ -40,10 +40,13 @@ Camera camera_new(
     }
     double pixel_size = half_width * 2 / (double)hsize;
 
+    Mat4D inv_transform = mat4d_inverse(transform);
+
     return (Camera) {
         hsize,
         vsize,
         transform,
+        inv_transform,
         half_width,
         half_height,
         pixel_size

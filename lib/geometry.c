@@ -3,17 +3,17 @@
 #include <matrix.h>
 #include <geometry.h>
 
-Shape _shape_new(int type) {
-    Mat4D transform = mat4d_identity();
-    return (Shape) { type, transform, material_new() };
+Shape _shape_new(int type, Mat4D transform, Material material) {
+    Mat4D inv = mat4d_inverse(transform);
+    return (Shape) { type, transform, inv, material };
 }
 
-Shape sphere_new() {
-    return _shape_new(SHAPE_SPHERE);
+Shape sphere_new(Mat4D transform, Material material) {
+    return _shape_new(SHAPE_SPHERE, transform, material);
 }
 
-Shape plane_new() {
-    return _shape_new(SHAPE_PLANE);
+Shape plane_new(Mat4D transform, Material material) {
+    return _shape_new(SHAPE_PLANE, transform, material);
 }
 
 Vec4D _sphere_normal(Vec4D object_point) {
@@ -26,11 +26,10 @@ Vec4D _plane_normal() {
 
 Vec4D shape_normal(Shape *shape, Vec4D world_point)
 {
-    Mat4D inv = mat4d_inverse(shape->transform);
-    Mat4D inv_transpose = mat4d_transpose(inv);
+    Mat4D inv_transpose = mat4d_transpose(shape->inv_transform);
 
     // Convert the point to object space
-    Vec4D object_point = mat4d_mul_vec4d(inv, world_point);
+    Vec4D object_point = mat4d_mul_vec4d(shape->inv_transform, world_point);
 
     Vec4D object_normal;
     switch (shape->type) {
@@ -52,7 +51,7 @@ Vec4D shape_normal(Shape *shape, Vec4D world_point)
 
 Color shape_color_at(Shape shape, Vec4D world_point)
 {
-    Vec4D object_point = mat4d_mul_vec4d(mat4d_inverse(shape.transform), world_point);
-    Vec4D pattern_point = mat4d_mul_vec4d(mat4d_inverse(shape.material.pattern.transform), object_point);
+    Vec4D object_point = mat4d_mul_vec4d(shape.inv_transform, world_point);
+    Vec4D pattern_point = mat4d_mul_vec4d(shape.material.pattern.inv_transform, object_point);
     return pattern_color_at(shape.material.pattern, pattern_point);
 }
