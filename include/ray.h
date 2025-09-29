@@ -63,5 +63,6 @@ Intersection *hit(IntersectionList intersections);
 
 Color ray_color(
     Ray ray,
-    World world
+    World world,
+    int remaining_reflections
 );
