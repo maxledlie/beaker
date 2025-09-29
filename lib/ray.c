@@ -7,7 +7,7 @@
 #include <ray.h>
 #include <geometry.h>
 
-const size_t BASE_INTERSECTION_COUNT = 128;
+const size_t BASE_INTERSECTION_COUNT = 4;
 const double EPSILON = 0.0000001;
 
 /// Creates a new, dynamically sized, always-sorted, insert-only list of intersections
@@ -180,18 +180,20 @@ IntersectionData ray_prepare_computations(Ray r, Intersection i)
     return d;
 }
 
-Color reflected_color(World w, IntersectionData x) {
+Color reflected_color(World w, IntersectionData x, int remaining_reflections) {
+    if (remaining_reflections <= 0) {
+        return color_black();
+    }
     double reflective = x.object_ptr->material.reflective;
     if (reflective == 0.0) {
         return color_black();
     }
-
     Ray reflected_ray = (Ray) { x.over_point, x.reflectv };
-    Color c = ray_color(reflected_ray, w);
+    Color c = ray_color(reflected_ray, w, remaining_reflections - 1);
     return color_mul(c, reflective);
 }
 
-Color shade_hit(World world, IntersectionData data) {
+Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
     Color c = color_black();
     for (size_t i = 0; i < world.light_count; i++) {
         PointLight light = world.lights[i];
@@ -205,14 +207,14 @@ Color shade_hit(World world, IntersectionData data) {
             in_shadow
         );
 
-        Color reflection = reflected_color(world, data);        
+        Color reflection = reflected_color(world, data, remaining_reflections);        
         c = color_add(c, contribution);
         c = color_add(c, reflection);
     }
     return c;
 }
 
-Color ray_color(Ray ray, World world) {
+Color ray_color(Ray ray, World world, int remaining_reflections) {
     IntersectionList xs = ray_intersect_world(ray, world.object_count, world.objects);
     Intersection *h = hit(xs);
     if (!h) {
@@ -220,6 +222,6 @@ Color ray_color(Ray ray, World world) {
     }
 
     IntersectionData data = ray_prepare_computations(ray, *h);
-    Color c = shade_hit(world, data);
+    Color c = shade_hit(world, data, remaining_reflections);
     return c;
 }
