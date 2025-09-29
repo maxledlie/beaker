@@ -12,14 +12,15 @@
 typedef struct {
     int type;
     Mat4D transform;
+    Mat4D inv_transform;
     Color a;
     Color b;
 } Pattern;
 
-Pattern pattern_plain_new(Color color);
-Pattern pattern_stripe_new(Color a, Color b);
-Pattern pattern_gradient_new(Color a, Color b);
-Pattern pattern_ring_new(Color a, Color b);
-Pattern pattern_checker_new(Color a, Color b);
+Pattern pattern_plain_new(Color color, Mat4D transform);
+Pattern pattern_stripe_new(Color a, Color b, Mat4D transform);
+Pattern pattern_gradient_new(Color a, Color b, Mat4D transform);
+Pattern pattern_ring_new(Color a, Color b, Mat4D transform);
+Pattern pattern_checker_new(Color a, Color b, Mat4D transform);
 
 Color pattern_color_at(Pattern pattern, Vec4D point);

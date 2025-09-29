@@ -9,32 +9,33 @@ int int_floor(double x) {
     return (int)(x - 0.5);
 }
 
-Pattern _pattern_new(int type, Color a, Color b) {
-    return (Pattern) { type, mat4d_identity(), a, b };
+Pattern _pattern_new(int type, Color a, Color b, Mat4D transform) {
+    Mat4D inv = mat4d_inverse(transform);
+    return (Pattern) { type, transform, inv, a, b };
 }
 
-Pattern pattern_plain_new(Color color) {
-    return _pattern_new(PATTERN_PLAIN, color, color);
+Pattern pattern_plain_new(Color color, Mat4D transform) {
+    return _pattern_new(PATTERN_PLAIN, color, color, transform);
 }
 
-Pattern pattern_stripe_new(Color a, Color b)
+Pattern pattern_stripe_new(Color a, Color b, Mat4D transform)
 {
-    return _pattern_new(PATTERN_STRIPE, a, b);
+    return _pattern_new(PATTERN_STRIPE, a, b, transform);
 }
 
-Pattern pattern_gradient_new(Color a, Color b)
+Pattern pattern_gradient_new(Color a, Color b, Mat4D transform)
 {
-    return _pattern_new(PATTERN_GRADIENT, a, b);
+    return _pattern_new(PATTERN_GRADIENT, a, b, transform);
 }
 
-Pattern pattern_ring_new(Color a, Color b)
+Pattern pattern_ring_new(Color a, Color b, Mat4D transform)
 {
-    return _pattern_new(PATTERN_RING, a, b);
+    return _pattern_new(PATTERN_RING, a, b, transform);
 }
 
-Pattern pattern_checker_new(Color a, Color b)
+Pattern pattern_checker_new(Color a, Color b, Mat4D transform)
 {
-    return _pattern_new(PATTERN_CHECKER, a, b);
+    return _pattern_new(PATTERN_CHECKER, a, b, transform);
 }
 
 Color _color_at_stripe(Pattern pattern, Vec4D point) {

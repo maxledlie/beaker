@@ -60,7 +60,7 @@ Ray ray_at_pixel(Camera camera, int px, int py)
 
     // Using the camera matrix, transform the canvas point and the origin,
     // and then compute the ray's direction vector.
-    Mat4D inv = mat4d_inverse(camera.transform);
+    Mat4D inv = camera.inv_transform;
     Vec4D pixel = mat4d_mul_vec4d(inv, d4_point(world_x, world_y, -1));
     Vec4D origin = mat4d_mul_vec4d(inv, d4_point(0., 0., 0.));
     Vec4D direction = d4_norm(d4_sub(pixel, origin));
@@ -120,7 +120,7 @@ IntersectionList ray_intersect_plane(Ray ray, Shape *plane) {
 IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
 {
     // Transform the ray into the shape's object space
-    Mat4D inv = mat4d_inverse(shape->transform);
+    Mat4D inv = shape->inv_transform;
     Ray r = ray_transform(ray, inv);
 
     switch (shape->type) {

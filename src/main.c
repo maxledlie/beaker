@@ -31,52 +31,61 @@ void log_line(char *msg) {
 int main() {
     log_line("Starting scene configuration");
 
-    Shape floor = plane_new();
-    floor.material.pattern = pattern_checker_new(color_rgb(0.8, 0.8, 0.9), color_rgb(0.2, 0.2, 0.3));
-    floor.material.reflective = 0.1;
+    Mat4D transform;
+    Material material;
 
-    Shape back_wall = plane_new();
-    back_wall.transform = mat4d_mul_mat4d(translation(0, 0, 5.), rotation_x(-M_PI / 2.));
-    back_wall.material.pattern = pattern_plain_new(color_rgb(0.4, 0.1, 0.1));
-    back_wall.material.diffuse = 0.6;
+    material = material_new();
+    transform = mat4d_identity();
+    material.pattern = pattern_checker_new(color_rgb(0.8, 0.8, 0.9), color_rgb(0.2, 0.2, 0.3), mat4d_identity());
+    material.reflective = 0.1;
+    Shape floor = plane_new(transform, material);
 
-    Shape left_wall = plane_new();
-    left_wall.transform = mat4d_mul_mat4d(rotation_y(-M_PI / 2.), rotation_x(-M_PI / 2.));
-    left_wall.transform = mat4d_mul_mat4d(translation(-4., 0., 0.), left_wall.transform);
-    left_wall.material.pattern = pattern_plain_new(color_rgb(0.1, 0.4, 0.1));
-    left_wall.material.diffuse = 0.6;
+    transform = mat4d_mul_mat4d(translation(0, 0, 5.), rotation_x(-M_PI / 2.));
+    material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(0.4, 0.1, 0.1), mat4d_identity());
+    material.diffuse = 0.6;
+    Shape back_wall = plane_new(transform, material);
 
-    Shape right_wall = plane_new();
-    right_wall.transform = mat4d_mul_mat4d(rotation_y(M_PI / 2.), rotation_x(-M_PI / 2.));
-    right_wall.transform = mat4d_mul_mat4d(translation(4., 0., 0.), right_wall.transform);
-    right_wall.material.pattern = pattern_plain_new(color_rgb(0.1, 0.1, 0.4));
-    right_wall.material.diffuse = 0.6;
+    transform = mat4d_mul_mat4d(rotation_y(-M_PI / 2.), rotation_x(-M_PI / 2.));
+    transform = mat4d_mul_mat4d(translation(-4., 0., 0.), transform);
+    material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(0.1, 0.4, 0.1), mat4d_identity());
+    material.diffuse = 0.6;
+    Shape left_wall = plane_new(transform, material);
 
-    Shape middle = sphere_new();
-    middle.transform = mat4d_mul_mat4d(translation(-0.5, 1.5, -1.0), scaling(1.5, 1.5, 1.5));
-    middle.material.ambient = 0.0;
-    middle.material.diffuse = 0.0;
-    middle.material.specular = 0.0;
-    middle.material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8));
-    middle.material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
-    middle.material.reflective = 1.0;
+    transform = mat4d_mul_mat4d(rotation_y(M_PI / 2.), rotation_x(-M_PI / 2.));
+    transform = mat4d_mul_mat4d(translation(4., 0., 0.), transform);
+    material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(0.1, 0.1, 0.4), mat4d_identity());
+    material.diffuse = 0.6;
+    Shape right_wall = plane_new(transform, material);
 
-    Shape right = sphere_new();
-    right.transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
-    right.material = material_new();
-    right.material.pattern = pattern_plain_new(color_rgb(1.0, 0.5, 0.1));
-    right.material.diffuse = 0.7;
-    right.material.specular = 0.6;
-    right.material.shininess = 500;
-    right.material.reflective = 0.1;
+    transform = mat4d_mul_mat4d(translation(-0.5, 1.5, -1.0), scaling(1.5, 1.5, 1.5));
+    material = material_new();
+    material.ambient = 0.0;
+    material.diffuse = 0.0;
+    material.specular = 0.0;
+    material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
+    material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
+    material.reflective = 1.0;
+    Shape middle = sphere_new(transform, material);
 
-    Shape left = sphere_new();
-    left.transform = mat4d_mul_mat4d(translation(-2.0, 0.6, -2.5), scaling(0.6, 0.6, 0.6));
-    left.material = material_new();
-    left.material.pattern = pattern_plain_new(color_rgb(1.0, 0.8, 0.1));
-    left.material.diffuse = 0.7;
-    left.material.specular = 0.3;
-    left.material.reflective = 0.1;
+    transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
+    material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(1.0, 0.5, 0.1), mat4d_identity());
+    material.diffuse = 0.7;
+    material.specular = 0.6;
+    material.shininess = 500;
+    material.reflective = 0.1;
+    Shape right = sphere_new(transform, material);
+
+    transform = mat4d_mul_mat4d(translation(-2.0, 0.6, -2.5), scaling(0.6, 0.6, 0.6));
+    material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(1.0, 0.8, 0.1), mat4d_identity());
+    material.diffuse = 0.7;
+    material.specular = 0.3;
+    material.reflective = 0.1;
+    Shape left = sphere_new(transform, material);
 
     Vec4D light_position = d4_point(-4.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};

@@ -9,11 +9,12 @@
 typedef struct {
     int type;
     Mat4D transform;
+    Mat4D inv_transform;
     Material material;
 } Shape;
 
-Shape sphere_new();
-Shape plane_new();
+Shape sphere_new(Mat4D transform, Material material);
+Shape plane_new(Mat4D transform, Material material);
 
 Vec4D shape_normal(Shape *shape, Vec4D world_point);
 Color shape_color_at(Shape shape, Vec4D world_point);

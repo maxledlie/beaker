@@ -17,13 +17,13 @@ World world_default()
     lights[0] = (PointLight) { d4_point(-10., 10., -10.), color_rgb(1., 1., 1.) };
 
     Shape *objects = malloc(2 * sizeof(Shape));
-    objects[0] = sphere_new();
-    objects[0].material.pattern = pattern_plain_new(color_rgb(0.8, 1.0, 0.6));
-    objects[0].material.diffuse = 0.7;
-    objects[0].material.specular = 0.2;
+    Material material = material_new();
+    material.pattern = pattern_plain_new(color_rgb(0.8, 1.0, 0.6), mat4d_identity());
+    material.diffuse = 0.7;
+    material.specular = 0.2;
+    objects[0] = sphere_new(mat4d_identity(), material);
 
-    objects[1] = sphere_new();
-    objects[1].transform = scaling(0.5, 0.5, 0.5);
+    objects[1] = sphere_new(scaling(0.5, 0.5, 0.5), material_new());
 
     return (World) { 1, lights, 2, objects};
 }

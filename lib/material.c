@@ -4,7 +4,7 @@ Material material_new() {
     // Default shiny white material
     Color color = { 1.0, 1.0, 1.0 };
     Material ret ={
-        pattern_plain_new(color),
+        pattern_plain_new(color, mat4d_identity()),
         0.1,
         0.9,
         0.9,
