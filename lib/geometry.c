@@ -1,19 +1,23 @@
 #include <stdio.h>
+#include <string.h>
 
 #include <matrix.h>
 #include <geometry.h>
 
-Shape _shape_new(int type, Mat4D transform, Material material) {
+Shape _shape_new(int type, Mat4D transform, Material material, const char *name) {
     Mat4D inv = mat4d_inverse(transform);
-    return (Shape) { type, transform, inv, material };
+    Shape s = { type, transform, inv, material, { 0 } };
+    strncpy(s.name, name, SHAPE_NAME_LEN - 1);
+    s.name[SHAPE_NAME_LEN - 1] = '\0';  // Ensure null-termination
+    return s;
 }
 
-Shape sphere_new(Mat4D transform, Material material) {
-    return _shape_new(SHAPE_SPHERE, transform, material);
+Shape sphere_new(Mat4D transform, Material material, char name[SHAPE_NAME_LEN]) {
+    return _shape_new(SHAPE_SPHERE, transform, material, name);
 }
 
-Shape plane_new(Mat4D transform, Material material) {
-    return _shape_new(SHAPE_PLANE, transform, material);
+Shape plane_new(Mat4D transform, Material material, char name[SHAPE_NAME_LEN]) {
+    return _shape_new(SHAPE_PLANE, transform, material, name);
 }
 
 Vec4D _sphere_normal(Vec4D object_point) {

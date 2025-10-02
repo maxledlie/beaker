@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include <config.h>
 #include <world.h>
 #include <ray.h>
 
@@ -21,9 +22,9 @@ World world_default()
     material.pattern = pattern_plain_new(color_rgb(0.8, 1.0, 0.6), mat4d_identity());
     material.diffuse = 0.7;
     material.specular = 0.2;
-    objects[0] = sphere_new(mat4d_identity(), material);
+    objects[0] = sphere_new(mat4d_identity(), material, "sphere_outer");
 
-    objects[1] = sphere_new(scaling(0.5, 0.5, 0.5), material_new());
+    objects[1] = sphere_new(scaling(0.5, 0.5, 0.5), material_new(), "sphere_inner");
 
     return (World) { 1, lights, 2, objects};
 }
