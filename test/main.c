@@ -1,3 +1,4 @@
+#include <config.h>
 #include <assertions.h>
 #include <vector.h>
 #include <ray.h>
@@ -57,7 +58,7 @@ void test_mat4d_inverse() {
 /// A sphere is behind a ray
 void test_ray_intersect_sphere__sphere_behind_ray() {
     Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
-    Shape sphere = sphere_new();
+    Shape sphere = sphere_new(mat4d_identity(), material_new(), "debug");
     IntersectionList xs = ray_intersect_shape(ray, &sphere);
     assert_eq_int(xs.count, 2);
     assert_eq_double(xs.items[0].t, -6.0, TOL);
@@ -73,14 +74,13 @@ void test_ray_position() {
 }
 
 void test_sphere_normal__translated() {
-    Shape sphere = sphere_new();
-    sphere.transform = translation(0.0, 1.0, 0.0);
+    Shape sphere = sphere_new(translation(0.0, 1.0, 0.0), material_new(), "debug");
     Vec4D n = shape_normal(&sphere, d4_point(0.0, 1.70711, -0.70711));
     assert_eq_vec4d(n, d4_vector(0.0, 0.70711, -0.70711), 0.00001);
 }
 
 void test_hit__all_intersections_positive_t() {
-    Shape sphere = sphere_new();
+    Shape sphere = sphere_new(mat4d_identity(), material_new(), "debug");
     IntersectionList xs = intersection_list_new();
     Intersection i1 = { 1.0, &sphere };
     Intersection i2 = { 2.0, &sphere };
@@ -107,7 +107,7 @@ void test_lighting__eye_between_light_and_surface() {
     Vec4D eyev = d4_vector(0., 0., -1.);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
-    Shape obj = sphere_new();
+    Shape obj = sphere_new(mat4d_identity(), material_new(), "debug");
     obj.material = m;
 
     Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
@@ -122,7 +122,7 @@ void test_lighting__eye_between_light_and_surface__eye_offset_45() {
     Vec4D eyev = d4_vector(0., sqrt(2) / 2.0, -sqrt(2) / 2.0);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 0., -10.), (Color) { 1., 1., 1. }};
-    Shape obj = sphere_new();
+    Shape obj = sphere_new(mat4d_identity(), material_new(), "debug");
     obj.material = m;
 
     Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
@@ -137,7 +137,7 @@ void test_lighting__eye_in_path_of_reflection_vector() {
     Vec4D eyev = d4_vector(0., -sqrt(2) / 2.0, -sqrt(2) / 2.0);
     Vec4D normalv = d4_vector(0., 0., -1.);
     PointLight light = (PointLight){ d4_point(0., 10., -10.), (Color) { 1., 1., 1. }};
-    Shape obj = sphere_new();
+    Shape obj = sphere_new(mat4d_identity(), material_new(), "debug");
     obj.material = m;
 
     Color result = lighting_compute(obj, light, position, eyev, normalv, 0);
