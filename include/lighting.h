@@ -4,7 +4,7 @@
 
 #include <vector.h>
 #include <material.h>
-#include <geometry.h>
+#include <shape.h>
 
 typedef struct PointLight {
     Vec4D position;

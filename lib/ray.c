@@ -6,7 +6,7 @@
 #include <config.h>
 #include <vector.h>
 #include <ray.h>
-#include <geometry.h>
+#include <shape.h>
 
 const size_t BASE_INTERSECTION_COUNT = 4;
 const double EPSILON = 0.0000001;

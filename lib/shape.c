@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include <matrix.h>
-#include <geometry.h>
+#include <shape.h>
 
 Shape _shape_new(int type, Mat4D transform, Material material, const char *name) {
     Mat4D inv = mat4d_inverse(transform);
