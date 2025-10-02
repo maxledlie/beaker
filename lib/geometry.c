@@ -16,6 +16,10 @@ Shape sphere_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_SPHERE, transform, material, name);
 }
 
+Shape sphere_default() {
+    return sphere_new(mat4d_identity(), material_default(), "default_sphere");
+}
+
 Shape plane_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_PLANE, transform, material, name);
 }

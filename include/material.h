@@ -10,6 +10,8 @@ typedef struct Material {
     double specular;
     double shininess;
     double reflective;
+    double transparency;
+    double refractive_index;
 } Material;
 
-Material material_new();
+Material material_default();
