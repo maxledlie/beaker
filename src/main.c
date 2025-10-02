@@ -1,4 +1,6 @@
-#define _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES  // For M_PI on Windows
+#define _DEFAULT_SOURCE    // For M_PI on Unix
+
 #include <math.h>
 
 #include <fcntl.h>
@@ -60,7 +62,7 @@ int main() {
     material.diffuse = 0.6;
     Shape right_wall = plane_new(transform, material);
 
-    transform = mat4d_mul_mat4d(translation(-0.5, 1.5, -1.0), scaling(1.5, 1.5, 1.5));
+    transform = mat4d_mul_mat4d(translation(-0.5, 1.5, -1.0), scaling(1.5, 0.8, 1.5));
     material = material_new();
     material.ambient = 0.0;
     material.diffuse = 0.0;

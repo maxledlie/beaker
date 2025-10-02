@@ -1,4 +1,6 @@
 #define _USE_MATH_DEFINES
+#define _DEFAULT_SOURCE
+
 #include <math.h>
 
 #include <camera.h>
