@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 Canvas canvas_create(int width, int height) {
     /// Initialises a canvas of the requested width and height with all pixels set to black.

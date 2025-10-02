@@ -1,3 +1,10 @@
 /build
 .vscode
 out.ppm
+
+# Ignore perf binary and its outputs
+perf
+perf.*
+
+# Throwaway development notes
+scratch.md

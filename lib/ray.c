@@ -13,7 +13,6 @@ const double EPSILON = 0.0000001;
 /// Creates a new, dynamically sized, always-sorted, insert-only list of intersections
 IntersectionList intersection_list_new() {
     Intersection *ptr = malloc(BASE_INTERSECTION_COUNT * sizeof(Intersection));
-    memset(ptr, 0, BASE_INTERSECTION_COUNT * sizeof(Intersection));
     return (IntersectionList) { 0, BASE_INTERSECTION_COUNT, ptr};
 }
 
