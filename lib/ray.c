@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <config.h>
 #include <vector.h>
 #include <ray.h>
 #include <geometry.h>
@@ -135,6 +136,13 @@ IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
 
 IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects)
 {
+    if (CFG_VERBOSE) {
+        printf(
+            "Casting ray from (%f, %f, %f) to (%f, %f, %f)\n",
+            ray.origin.x, ray.origin.y, ray.origin.z,
+            ray.direction.x, ray.direction.y, ray.direction.z
+        );
+    }
     IntersectionList xs = intersection_list_new();
     for (size_t i = 0; i < object_count; i++) {
         IntersectionList sub_xs = ray_intersect_shape(ray, &objects[i]);
@@ -153,6 +161,14 @@ Intersection *hit(IntersectionList intersections) {
         if (candidate->t >= 0.0 && candidate->t < best) {
             best = candidate->t;
             best_ptr = candidate;
+        }
+    }
+    if (CFG_VERBOSE) {
+        if (best_ptr) {
+            printf("Hit at object %s\n", best_ptr->object_ptr->name);
+            printf("Hit at t-value %f\n", best_ptr->t);
+        } else {
+            printf("No hit.\n");
         }
     }
     return best_ptr;
@@ -197,6 +213,15 @@ Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
     for (size_t i = 0; i < world.light_count; i++) {
         PointLight light = world.lights[i];
         int in_shadow = is_point_shadowed(data.over_point, light, world.object_count, world.objects);
+
+        if (CFG_VERBOSE) {
+            if (in_shadow) {
+                printf("Intersection is in shadow\n");
+            } else {
+                printf("Intersection is NOT in shadow\n");
+            }
+        }
+
         Color contribution = lighting_compute(
             *data.object_ptr,
             light,
@@ -221,6 +246,13 @@ Color ray_color(Ray ray, World world, int remaining_reflections) {
     }
 
     IntersectionData data = ray_prepare_computations(ray, *h);
+    if (CFG_SINGLE_PIXEL_DEBUG) {
+        printf("\n");
+        printf("Intersection at t-value %f\n", data.t);
+        printf("Intersection point: (%f, %f, %f)\n", data.point.x, data.point.y, data.point.z);
+        printf("Intersection over_point: (%f, %f, %f)\n", data.over_point.x, data.over_point.y, data.over_point.z);
+    }
+
     Color c = shade_hit(world, data, remaining_reflections);
     return c;
 }
