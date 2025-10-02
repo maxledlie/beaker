@@ -1,7 +1,7 @@
 #pragma once
 
 #include <lighting.h>
-#include <geometry.h>
+#include <shape.h>
 
 typedef struct World {
     size_t light_count;

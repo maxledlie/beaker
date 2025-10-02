@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <vector.h>
 #include <matrix.h>
-#include <geometry.h>
+#include <shape.h>
 #include <world.h>
 #include <camera.h>
 

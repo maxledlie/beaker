@@ -1,5 +1,5 @@
 #include <lighting.h>
-#include <geometry.h>
+#include <shape.h>
 
 Color lighting_compute(Shape object, PointLight light, Vec4D point, Vec4D eye, Vec4D normal, int in_shadow) {
     Color ambient, diffuse, specular;

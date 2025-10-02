@@ -18,6 +18,7 @@ typedef struct {
 
 Shape sphere_new(Mat4D transform, Material material, char *name);
 Shape plane_new(Mat4D transform, Material material, char *name);
+Shape cube_new(Mat4D transform, Material material, char *name);
 Shape sphere_default();
 Vec4D shape_normal(Shape *shape, Vec4D world_point);
 Color shape_color_at(Shape shape, Vec4D world_point);
