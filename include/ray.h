@@ -47,6 +47,8 @@ typedef struct Ray {
 
 Ray ray_at_pixel(Camera camera, int px, int py);
 
+IntersectionData ray_prepare_computations(Ray r, Intersection i);
+
 /// Returns the ray that would result from applying the given transformation to the given input ray.
 Ray ray_transform(Ray ray, Mat4D transform);
 
