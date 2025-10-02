@@ -12,11 +12,11 @@ Shape _shape_new(int type, Mat4D transform, Material material, const char *name)
     return s;
 }
 
-Shape sphere_new(Mat4D transform, Material material, char name[SHAPE_NAME_LEN]) {
+Shape sphere_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_SPHERE, transform, material, name);
 }
 
-Shape plane_new(Mat4D transform, Material material, char name[SHAPE_NAME_LEN]) {
+Shape plane_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_PLANE, transform, material, name);
 }
 
