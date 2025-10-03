@@ -117,6 +117,50 @@ IntersectionList ray_intersect_plane(Ray ray, Shape *plane) {
     return xs;
 }
 
+/// @brief Computes the smaller and larger t-values at which a ray will intersect the -1 and +1
+/// planes on a single axis, writing results to tmin and tmax.
+/// @param origin 
+/// @param direction 
+/// @param tmin 
+/// @param tmax 
+void _cube_check_axis(double origin, double direction, double *tmin, double *tmax) {
+    double tmin_numerator = (-1 - origin);
+    double tmax_numerator = (+1 - origin);
+
+    if (fabs(direction) >= EPSILON) {
+        *tmin = tmin_numerator / direction;
+        *tmax = tmax_numerator / direction;
+    } else {
+        *tmin = tmin_numerator * INFINITY;
+        *tmax = tmax_numerator * INFINITY;
+    }
+    if (tmin > tmax) {
+        // swap
+        double tmp = *tmin;
+        *tmin = *tmax;
+        *tmax = tmp;
+    }
+}
+
+IntersectionList ray_intersect_cube(Ray ray, Shape *cube) {
+    double xtmin, xtmax, ytmin, ytmax, ztmin, ztmax;
+    _cube_check_axis(ray.origin.x, ray.direction.x, &xtmin, &xtmax);
+    _cube_check_axis(ray.origin.y, ray.direction.y, &ytmin, &ytmax);
+    _cube_check_axis(ray.origin.z, ray.direction.z, &ztmin, &ztmax);
+
+    double tmin = fmax(fmax(xtmin, ytmin), ztmin);
+    double tmax = fmin(fmin(xtmax, ytmax), ztmax);
+
+    IntersectionList xs = intersection_list_new();
+    if (tmin > tmax) {
+        return xs;
+    }
+
+    intersection_list_add(&xs, (Intersection) { tmin, cube });
+    intersection_list_add(&xs, (Intersection) { tmin, cube });
+    return xs;
+}
+
 IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
 {
     // Transform the ray into the shape's object space
@@ -128,6 +172,8 @@ IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
             return ray_intersect_sphere(r, shape);
         case SHAPE_PLANE:
             return ray_intersect_plane(r, shape);
+        case SHAPE_CUBE:
+            return ray_intersect_cube(r, shape);
         default:
             printf("Unrecognised shape %i", shape->type);
             return intersection_list_new();

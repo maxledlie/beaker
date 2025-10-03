@@ -4,7 +4,8 @@
 #include <material.h>
 
 #define SHAPE_SPHERE 0
-#define SHAPE_PLANE 1
+#define SHAPE_PLANE  1
+#define SHAPE_CUBE   2
 
 #define SHAPE_NAME_LEN 64
 

@@ -68,7 +68,7 @@ int main() {
     material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
     material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
     material.reflective = 1.0;
-    Shape middle = sphere_new(transform, material, "middle");
+    Shape middle = cube_new(transform, material, "middle");
 
     transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
     material = material_default();
@@ -86,6 +86,12 @@ int main() {
     material.specular = 0.3;
     material.reflective = 0.1;
     Shape left = sphere_new(transform, material, "left");
+
+    // transform = mat4d_mul_mat4d(rotation_y(1.251), scaling(0.3, 0.3, 0.3));
+    // transform = mat4d_mul_mat4d(translation(0.1, 0.3, -1.1), transform);
+    // material = material_default();
+    // material.pattern = pattern_plain_new(color_rgb(0.8, 0.5, 0.3), mat4d_identity());
+    // Shape cube = cube_new(transform, material, "cube");
 
     Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};

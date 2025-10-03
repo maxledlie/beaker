@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include <matrix.h>
 #include <shape.h>
@@ -24,12 +25,29 @@ Shape plane_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_PLANE, transform, material, name);
 }
 
+Shape cube_new(Mat4D transform, Material material, char *name)
+{
+    return _shape_new(SHAPE_CUBE, transform, material, name);
+}
+
 Vec4D _sphere_normal(Vec4D object_point) {
     return d4_sub(object_point, d4_point(0, 0, 0));
 }
 
 Vec4D _plane_normal() {
     return d4_vector(0., 1., 0.);
+}
+
+Vec4D _cube_normal(Vec4D object_point) {
+    double maxc = fmax(fabs(object_point.x), fabs(object_point.y));
+    maxc = fmax(maxc, fabs(object_point.z));
+
+    if (maxc == object_point.x) {
+        return d4_vector(1.0, 0.0, 0.0);
+    } else if (maxc == object_point.y) {
+        return d4_vector(0.0, 1.0, 0.0);
+    }
+    return d4_vector(0.0, 0.0, 1.0);
 }
 
 Vec4D shape_normal(Shape *shape, Vec4D world_point)
@@ -43,6 +61,9 @@ Vec4D shape_normal(Shape *shape, Vec4D world_point)
     switch (shape->type) {
         case SHAPE_SPHERE:
             object_normal = _sphere_normal(object_point);
+            break;
+        case SHAPE_CUBE:
+            object_normal = _cube_normal(object_point);
             break;
         case SHAPE_PLANE:
             object_normal = _plane_normal();
