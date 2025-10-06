@@ -179,13 +179,13 @@ void _add_cap_intersections(Ray ray, Shape *cylinder, IntersectionList *xs) {
     }
 
     // Check lower end cap by intersecting ray with plane at y = cyl.minimum
-    double t = (*cylinder->extent_min - ray.origin.y) / ray.direction.y;
+    double t = (cylinder->ymin - ray.origin.y) / ray.direction.y;
     if (_check_cap(ray, t)) { 
         intersection_list_add(xs, (Intersection) { t, cylinder });
     }
 
     // Check upper end cap by intersecting ray with plane at y = cyl.maximum
-    t = (*cylinder->extent_max - ray.origin.y) / ray.direction.y;
+    t = (cylinder->ymax - ray.origin.y) / ray.direction.y;
     if (_check_cap(ray, t)) {
         intersection_list_add(xs, (Intersection) { t, cylinder });
     }
@@ -217,10 +217,10 @@ IntersectionList ray_intersect_cylinder(Ray ray, Shape *cylinder) {
     double y1 = ray.origin.y + tmax * ray.direction.y;
 
     IntersectionList xs = intersection_list_new();
-    if (y0 > *cylinder->extent_min && y0 < *cylinder->extent_max) {
+    if (y0 > cylinder->ymin && y0 < cylinder->ymax) {
         intersection_list_add(&xs, (Intersection) { tmin, cylinder });
     }
-    if (y1 > *cylinder->extent_min && y1 < *cylinder->extent_max) {
+    if (y1 > cylinder->ymin && y1 < cylinder->ymax) {
         intersection_list_add(&xs, (Intersection) { tmax, cylinder });
     }
 
