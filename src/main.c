@@ -60,15 +60,17 @@ int main() {
     material.diffuse = 0.6;
     Shape right_wall = plane_new(transform, material, "right_wall");
 
-    transform = mat4d_mul_mat4d(translation(-0.5, 1.5, -1.0), scaling(1.5, 1.5, 1.5));
+    transform = mat4d_mul_mat4d(translation(-0.5, 1.0, -1.0), scaling(1.0, 2.0, 1.0));
     material = material_default();
-    material.ambient = 0.0;
-    material.diffuse = 0.0;
-    material.specular = 0.0;
-    material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
+    material.pattern = pattern_gradient_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
     material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
-    material.reflective = 1.0;
-    Shape middle = sphere_new(transform, material, "middle");
+    material.diffuse = 0.7;
+    material.specular = 0.6;
+    material.shininess = 500;
+    material.reflective = 0.1;
+    double ymin = -0.5;
+    double ymax = 0.5;
+    Shape middle = cylinder_new(transform, material, "middle", &ymin, &ymax, 1);
 
     transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
     material = material_default();
@@ -116,7 +118,7 @@ int main() {
     world.lights[0] = light;
 
     Mat4D view = view_transform(
-        d4_point(0, 1.5, -7.5),
+        d4_point(-1.0, 2.0, -8.0),
         d4_point(0., 1., 0.),
         d4_vector(0., 1., 0.)
     );
