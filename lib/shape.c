@@ -22,6 +22,15 @@ Shape sphere_default() {
     return sphere_new(mat4d_identity(), material_default(), "default_sphere");
 }
 
+Group group_new(Mat4D transform, int num_shapes, Shape *shapes, char *name)
+{
+    Mat4D inv = mat4d_inverse(transform);
+    Group g = { transform, inv, { 0 }, num_shapes, shapes };
+    strncpy(g.name, name, SHAPE_NAME_LEN - 1);
+    g.name[SHAPE_NAME_LEN - 1] = '\0';
+    return g;
+}
+
 Shape plane_new(Mat4D transform, Material material, char *name) {
     return _shape_new(SHAPE_PLANE, transform, material, name, -INFINITY, INFINITY, 0);
 }

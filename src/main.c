@@ -34,90 +34,40 @@ int main() {
     Mat4D transform;
     Material material;
 
+
+    // Create a group describing a square made of cylinders and spheres
     material = material_default();
     transform = mat4d_identity();
-    material.pattern = pattern_checker_new(color_rgb(0.8, 0.8, 0.9), color_rgb(0.2, 0.2, 0.3), mat4d_identity());
-    material.reflective = 0.1;
-    Shape floor = plane_new(transform, material, "floor");
+    transform = translation(-5.0, 0.0, 0.0);
+    Shape left = cylinder_new(transform, material, "window_left", -5.0, -5.0, 1);
 
-    transform = mat4d_mul_mat4d(translation(0, 0, 5.), rotation_x(-M_PI / 2.));
-    material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(0.4, 0.1, 0.1), mat4d_identity());
-    material.diffuse = 0.6;
-    Shape back_wall = plane_new(transform, material, "back_wall");
+    transform = translation(5.0, 0.0, 0.0);
+    Shape right = cylinder_new(transform, material, "window_right", -5.0, 5.0, 1);
 
-    transform = mat4d_mul_mat4d(rotation_y(-M_PI / 2.), rotation_x(-M_PI / 2.));
-    transform = mat4d_mul_mat4d(translation(-4., 0., 0.), transform);
-    material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(0.1, 0.4, 0.1), mat4d_identity());
-    material.diffuse = 0.6;
-    Shape left_wall = plane_new(transform, material, "left_wall");
+    transform = mat4d_mul_mat4d(translation(0.0, 5.0, 0.0), rotation_z(M_PI / 4.0));
+    Shape top = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
 
-    transform = mat4d_mul_mat4d(rotation_y(M_PI / 2.), rotation_x(-M_PI / 2.));
-    transform = mat4d_mul_mat4d(translation(4., 0., 0.), transform);
-    material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(0.1, 0.1, 0.4), mat4d_identity());
-    material.diffuse = 0.6;
-    Shape right_wall = plane_new(transform, material, "right_wall");
-
-    transform = mat4d_mul_mat4d(translation(-0.5, 1.0, -1.0), scaling(1.0, 2.0, 1.0));
-    material = material_default();
-    material.pattern = pattern_gradient_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
-    material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
-    material.diffuse = 0.7;
-    material.specular = 0.6;
-    material.shininess = 500;
-    material.reflective = 0.1;
-    Shape middle = cylinder_new(transform, material, "middle", -0.5, 0.5, 1);
-
-    transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
-    material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(1.0, 0.5, 0.1), mat4d_identity());
-    material.diffuse = 0.7;
-    material.specular = 0.6;
-    material.shininess = 500;
-    material.reflective = 0.1;
-    Shape right = sphere_new(transform, material, "right");
-
-    transform = mat4d_mul_mat4d(translation(-2.0, 0.6, -2.5), scaling(0.6, 0.6, 0.6));
-    material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(1.0, 0.8, 0.1), mat4d_identity());
-    material.diffuse = 0.7;
-    material.specular = 0.3;
-    material.reflective = 0.1;
-    Shape left = sphere_new(transform, material, "left");
-
-    transform = mat4d_mul_mat4d(rotation_y(1.251), scaling(0.3, 0.3, 0.3));
-    transform = mat4d_mul_mat4d(translation(0.1, 0.3, -4.0), transform);
-    material = material_default();
-    material.diffuse = 0.7;
-    material.specular = 0.3;
-    material.reflective = 0.1;
-    material.pattern = pattern_plain_new(color_rgb(0.8, 0.5, 0.3), mat4d_identity());
-    Shape cube = cube_new(transform, material, "cube");
+    transform = mat4d_mul_mat4d(translation(0.0, -5.0, 0.0), rotation_z(M_PI / 4.0));
+    Shape bottom = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
 
     Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
 
     World world = world_new();
-    world.object_count = 8;
+    world.object_count = 4;
     world.objects = malloc(world.object_count * sizeof(Shape));
-    world.objects[0] = floor;
-    world.objects[1] = middle;
-    world.objects[2] = right;
-    world.objects[3] = left;
-    world.objects[4] = back_wall;
-    world.objects[5] = left_wall;
-    world.objects[6] = right_wall;
-    world.objects[7] = cube;
+    world.objects[0] = left;
+    world.objects[1] = right;
+    world.objects[2] = top;
+    world.objects[3] = bottom;
     world.light_count = 1;
     world.lights = malloc(world.light_count * sizeof(PointLight));
     world.lights[0] = light;
 
     Mat4D view = view_transform(
-        d4_point(-1.0, 2.0, -8.0),
-        d4_point(0., 1., 0.),
+        d4_point(0.0, 2.0, -8.0),
+        d4_point(0., 0., 0.),
         d4_vector(0., 1., 0.)
     );
     Camera camera = camera_new(1200, 900, M_PI / 3., view);

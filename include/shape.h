@@ -23,6 +23,14 @@ typedef struct {
     int closed;
 } Shape;
 
+typedef struct {
+    Mat4D transform;
+    Mat4D inv_transform;
+    char name[SHAPE_NAME_LEN];
+    int num_children;
+    Shape *children;
+} Group;
+
 Shape sphere_new(Mat4D transform, Material material, char *name);
 Shape plane_new(Mat4D transform, Material material, char *name);
 Shape cube_new(Mat4D transform, Material material, char *name);
@@ -30,6 +38,8 @@ Shape cylinder_new(Mat4D transform, Material material, char *name, double ymin, 
 Shape cone_new(Mat4D transform, Material material, char *name, double ymin, double ymax, int closed);
 
 Shape sphere_default();
+
+Group group_new(Mat4D transform, int num_shapes, Shape *shapes, char *name);
 
 Vec4D shape_normal(Shape *shape, Vec4D world_point);
 Color shape_color_at(Shape shape, Vec4D world_point);
