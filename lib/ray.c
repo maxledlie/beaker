@@ -9,7 +9,6 @@
 #include <shape.h>
 
 const size_t BASE_INTERSECTION_COUNT = 4;
-const double EPSILON = 0.0000001;
 
 /// Creates a new, dynamically sized, always-sorted, insert-only list of intersections
 IntersectionList intersection_list_new() {
@@ -166,6 +165,74 @@ IntersectionList ray_intersect_cube(Ray ray, Shape *cube) {
     return xs;
 }
 
+/// @brief Checks whether the intersection at `t` is within a radius of 1 from the y axis
+int _check_cap(Ray ray, double t) {
+    double x = ray.origin.x + t * ray.direction.x;
+    double z = ray.origin.z + t * ray.direction.z;
+    return (pow(x, 2.0) + pow(z, 2.0)) <= 1.0;
+}
+
+/// @brief Adds intersections with a cylinder's caps to the given list of intersections
+void _add_cap_intersections(Ray ray, Shape *cylinder, IntersectionList *xs) {
+    if (!cylinder->closed || fabs(ray.direction.y) < EPSILON) {
+        return;
+    }
+
+    // Check lower end cap by intersecting ray with plane at y = cyl.minimum
+    double t = (*cylinder->extent_min - ray.origin.y) / ray.direction.y;
+    if (_check_cap(ray, t)) { 
+        intersection_list_add(xs, (Intersection) { t, cylinder });
+    }
+
+    // Check upper end cap by intersecting ray with plane at y = cyl.maximum
+    t = (*cylinder->extent_max - ray.origin.y) / ray.direction.y;
+    if (_check_cap(ray, t)) {
+        intersection_list_add(xs, (Intersection) { t, cylinder });
+    }
+}
+
+IntersectionList ray_intersect_cylinder(Ray ray, Shape *cylinder) {
+    double a = pow(ray.direction.x, 2.0) + pow(ray.direction.z, 2.0);
+
+    if (fabs(a) < EPSILON) {
+        // Ray is parallel to the y axis
+        return intersection_list_new();
+    }
+
+    double b = 2.0 * ray.origin.x * ray.direction.x + 2.0 * ray.origin.z * ray.direction.z;
+    double c = pow(ray.origin.x, 2.0) + pow(ray.origin.z, 2.0) - 1.0;
+    double disc = pow(b, 2.0) - 4.0 * a * c;
+
+    if (disc < 0.0) {
+        // Ray does not intersect the cylinder
+        return intersection_list_new();
+    }
+
+    double t0 = (-b - sqrt(disc)) / (2.0 * a);
+    double t1 = (-b + sqrt(disc)) / (2.0 * a);
+
+    double tmin = fmin(t0, t1);
+    double tmax = fmax(t0, t1);
+    double y0 = ray.origin.y + tmin * ray.direction.y;
+    double y1 = ray.origin.y + tmax * ray.direction.y;
+
+    IntersectionList xs = intersection_list_new();
+    if (y0 > *cylinder->extent_min && y0 < *cylinder->extent_max) {
+        intersection_list_add(&xs, (Intersection) { tmin, cylinder });
+    }
+    if (y1 > *cylinder->extent_min && y1 < *cylinder->extent_max) {
+        intersection_list_add(&xs, (Intersection) { tmax, cylinder });
+    }
+
+    _add_cap_intersections(ray, cylinder, &xs);
+    return xs;
+}
+
+IntersectionList ray_intersect_cone(Ray ray, Shape *cone) {
+    // TODO
+    return intersection_list_new();
+}
+
 IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
 {
     // Transform the ray into the shape's object space
@@ -179,6 +246,10 @@ IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
             return ray_intersect_plane(r, shape);
         case SHAPE_CUBE:
             return ray_intersect_cube(r, shape);
+        case SHAPE_CYLINDER:
+            return ray_intersect_cylinder(r, shape);
+        case SHAPE_CONE:
+            return ray_intersect_cone(r, shape);
         default:
             printf("Unrecognised shape %i", shape->type);
             return intersection_list_new();
@@ -302,7 +373,7 @@ Color ray_color(Ray ray, World world, int remaining_reflections) {
 
     if (CFG_SINGLE_PIXEL_DEBUG) {
         printf("\n");
-        printf("Intersection at t-value %f\n", data.t);
+        printf("Intersection with object '%s' at t-value %f\n", data.object_ptr->name, data.t);
         printf("Intersection point: (%f, %f, %f)\n", data.point.x, data.point.y, data.point.z);
         printf("Intersection over_point: (%f, %f, %f)\n", data.over_point.x, data.over_point.y, data.over_point.z);
     }
