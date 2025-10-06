@@ -68,9 +68,7 @@ int main() {
     material.specular = 0.6;
     material.shininess = 500;
     material.reflective = 0.1;
-    double ymin = -0.5;
-    double ymax = 0.5;
-    Shape middle = cylinder_new(transform, material, "middle", &ymin, &ymax, 1);
+    Shape middle = cylinder_new(transform, material, "middle", -0.5, 0.5, 1);
 
     transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
     material = material_default();

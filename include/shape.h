@@ -18,16 +18,16 @@ typedef struct {
     Material material;
     char name[SHAPE_NAME_LEN];
     // For infinite shapes like cylinders and cones we can optionally provide minimum and maximum y-coordinates
-    double *extent_min;
-    double *extent_max;
+    double ymin;
+    double ymax;
     int closed;
 } Shape;
 
 Shape sphere_new(Mat4D transform, Material material, char *name);
 Shape plane_new(Mat4D transform, Material material, char *name);
 Shape cube_new(Mat4D transform, Material material, char *name);
-Shape cylinder_new(Mat4D transform, Material material, char *name, double *ymin, double *ymax, int closed);
-Shape cone_new(Mat4D transform, Material material, char *name, double *ymin, double *ymax, int closed);
+Shape cylinder_new(Mat4D transform, Material material, char *name, double ymin, double ymax, int closed);
+Shape cone_new(Mat4D transform, Material material, char *name, double ymin, double ymax, int closed);
 
 Shape sphere_default();
 

@@ -6,16 +6,16 @@
 #include <shape.h>
 #include <config.h>
 
-Shape _shape_new(int type, Mat4D transform, Material material, const char *name, double *extent_min, double *extent_max, int closed) {
+Shape _shape_new(int type, Mat4D transform, Material material, const char *name, double ymin, double ymax, int closed) {
     Mat4D inv = mat4d_inverse(transform);
-    Shape s = { type, transform, inv, material, { 0 }, extent_min, extent_max, closed };
+    Shape s = { type, transform, inv, material, { 0 }, ymin, ymax, closed };
     strncpy(s.name, name, SHAPE_NAME_LEN - 1);
     s.name[SHAPE_NAME_LEN - 1] = '\0';  // Ensure null-termination
     return s;
 }
 
 Shape sphere_new(Mat4D transform, Material material, char *name) {
-    return _shape_new(SHAPE_SPHERE, transform, material, name, NULL, NULL, 0);
+    return _shape_new(SHAPE_SPHERE, transform, material, name, -INFINITY, INFINITY, 0);
 }
 
 Shape sphere_default() {
@@ -23,20 +23,20 @@ Shape sphere_default() {
 }
 
 Shape plane_new(Mat4D transform, Material material, char *name) {
-    return _shape_new(SHAPE_PLANE, transform, material, name, NULL, NULL, 0);
+    return _shape_new(SHAPE_PLANE, transform, material, name, -INFINITY, INFINITY, 0);
 }
 
 Shape cube_new(Mat4D transform, Material material, char *name)
 {
-    return _shape_new(SHAPE_CUBE, transform, material, name, NULL, NULL, 0);
+    return _shape_new(SHAPE_CUBE, transform, material, name, -INFINITY, INFINITY, 0);
 }
 
-Shape cylinder_new(Mat4D transform, Material material, char *name, double *ymin, double *ymax, int closed)
+Shape cylinder_new(Mat4D transform, Material material, char *name, double ymin, double ymax, int closed)
 {
     return _shape_new(SHAPE_CYLINDER, transform, material, name, ymin, ymax, closed);
 }
 
-Shape cone_new(Mat4D transform, Material material, char *name, double *ymin, double *ymax, int closed)
+Shape cone_new(Mat4D transform, Material material, char *name, double ymin, double ymax, int closed)
 {
     return _shape_new(SHAPE_CYLINDER, transform, material, name, ymin, ymax, closed);
 }
@@ -66,9 +66,9 @@ Vec4D _cylinder_normal(Vec4D object_point, Shape *cylinder) {
     double y = object_point.y;
     double z = object_point.z;
     double dist = pow(x, 2.0) + pow(z, 2.0);
-    if (dist < 1.0 && y >= *cylinder->extent_max - EPSILON) {
+    if (dist < 1.0 && y >= cylinder->ymax - EPSILON) {
         return d4_vector(0.0, 1.0, 0.0);
-    } else if (dist < 1.0 && y <= *cylinder->extent_min + EPSILON) {
+    } else if (dist < 1.0 && y <= cylinder->ymin + EPSILON) {
         return d4_vector(0.0, -1.0, 0.0);
     }
     return d4_vector(x, 0.0, z);
