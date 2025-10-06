@@ -17,6 +17,10 @@ IntersectionList intersection_list_new() {
     return (IntersectionList) { 0, BASE_INTERSECTION_COUNT, ptr};
 }
 
+void intersection_list_free(IntersectionList *xs) {
+    free(xs->items);
+}
+
 int intersection_list_add(IntersectionList *xs, Intersection x)
 {
     // Allocate additional memory if required
@@ -24,7 +28,8 @@ int intersection_list_add(IntersectionList *xs, Intersection x)
         xs->capacity *= 2;
         xs->items = realloc(xs->items, xs->capacity * sizeof(Intersection));
         if (!xs->items) {
-            return 1;
+            fprintf(stderr, "Out of memory!\n");
+            exit(1);
         }
     }
 
@@ -125,7 +130,7 @@ IntersectionList ray_intersect_plane(Ray ray, Shape *plane) {
 /// @param tmax 
 void _cube_check_axis(double origin, double direction, double *tmin, double *tmax) {
     double tmin_numerator = (-1 - origin);
-    double tmax_numerator = (+1 - origin);
+    double tmax_numerator = (1 - origin);
 
     if (fabs(direction) >= EPSILON) {
         *tmin = tmin_numerator / direction;
@@ -134,7 +139,7 @@ void _cube_check_axis(double origin, double direction, double *tmin, double *tma
         *tmin = tmin_numerator * INFINITY;
         *tmax = tmax_numerator * INFINITY;
     }
-    if (tmin > tmax) {
+    if (*tmin > *tmax) {
         // swap
         double tmp = *tmin;
         *tmin = *tmax;
@@ -195,6 +200,7 @@ IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *object
         for (size_t j = 0; j < sub_xs.count; j++) {
             intersection_list_add(&xs, sub_xs.items[j]);
         }
+        intersection_list_free(&sub_xs);
     }
     return xs;
 }
@@ -292,6 +298,8 @@ Color ray_color(Ray ray, World world, int remaining_reflections) {
     }
 
     IntersectionData data = ray_prepare_computations(ray, *h);
+    intersection_list_free(&xs);
+
     if (CFG_SINGLE_PIXEL_DEBUG) {
         printf("\n");
         printf("Intersection at t-value %f\n", data.t);

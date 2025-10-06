@@ -68,7 +68,7 @@ int main() {
     material.pattern = pattern_stripe_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
     material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
     material.reflective = 1.0;
-    Shape middle = cube_new(transform, material, "middle");
+    Shape middle = sphere_new(transform, material, "middle");
 
     transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
     material = material_default();
@@ -87,18 +87,21 @@ int main() {
     material.reflective = 0.1;
     Shape left = sphere_new(transform, material, "left");
 
-    // transform = mat4d_mul_mat4d(rotation_y(1.251), scaling(0.3, 0.3, 0.3));
-    // transform = mat4d_mul_mat4d(translation(0.1, 0.3, -1.1), transform);
-    // material = material_default();
-    // material.pattern = pattern_plain_new(color_rgb(0.8, 0.5, 0.3), mat4d_identity());
-    // Shape cube = cube_new(transform, material, "cube");
+    transform = mat4d_mul_mat4d(rotation_y(1.251), scaling(0.3, 0.3, 0.3));
+    transform = mat4d_mul_mat4d(translation(0.1, 0.3, -4.0), transform);
+    material = material_default();
+    material.diffuse = 0.7;
+    material.specular = 0.3;
+    material.reflective = 0.1;
+    material.pattern = pattern_plain_new(color_rgb(0.8, 0.5, 0.3), mat4d_identity());
+    Shape cube = cube_new(transform, material, "cube");
 
     Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
 
     World world = world_new();
-    world.object_count = 7;
+    world.object_count = 8;
     world.objects = malloc(world.object_count * sizeof(Shape));
     world.objects[0] = floor;
     world.objects[1] = middle;
@@ -107,6 +110,7 @@ int main() {
     world.objects[4] = back_wall;
     world.objects[5] = left_wall;
     world.objects[6] = right_wall;
+    world.objects[7] = cube;
     world.light_count = 1;
     world.lights = malloc(world.light_count * sizeof(PointLight));
     world.lights[0] = light;
@@ -116,7 +120,7 @@ int main() {
         d4_point(0., 1., 0.),
         d4_vector(0., 1., 0.)
     );
-    Camera camera = camera_new(1000, 800, M_PI / 3., view);
+    Camera camera = camera_new(1200, 900, M_PI / 3., view);
     Canvas canvas = canvas_create(camera.hsize, camera.vsize);
 
     log_line("Completed scene configuration");
@@ -140,4 +144,9 @@ int main() {
     }
     log_line("Completed render");
     canvas_save_ppm(canvas, "out.ppm");
+
+    // Free stuff to keep address sanitizer happy
+    free(world.lights);
+    free(world.objects);
+    canvas_destroy(canvas);
 }

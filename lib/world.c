@@ -39,5 +39,7 @@ int is_point_shadowed(Vec4D point, PointLight light, int object_count, Shape *ob
     IntersectionList xs = ray_intersect_world(r, object_count, objects);
 
     Intersection *h = hit(xs);
-    return h && h->t < distance;
+    double ret = h && h->t < distance;
+    intersection_list_free(&xs);
+    return ret;
 }
