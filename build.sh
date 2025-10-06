@@ -1,1 +1,1 @@
-gcc src/*.c lib/*.c -Wall -Wextra -std=c11 -g -o build/main.exe -I include -lm
+gcc src/*.c lib/*.c -Wall -Wextra -std=c11 -g -o build/main.exe -I include -lm -fsanitize=address

@@ -23,6 +23,7 @@ typedef struct {
 } IntersectionList;
 
 IntersectionList intersection_list_new();
+void intersection_list_free(IntersectionList *xs);
 int intersection_list_add(IntersectionList *xs, Intersection x);
 
 typedef struct {
