@@ -12,4 +12,4 @@ typedef struct World {
 
 World world_new();
 World world_default();
-int is_point_shadowed(Vec4D point, PointLight light, int object_count, Shape *objects);
+int is_point_shadowed(Vec4D point, PointLight light, World world);

@@ -29,17 +29,14 @@ World world_default()
     return (World) { 1, lights, 2, objects};
 }
 
-int is_point_shadowed(Vec4D point, PointLight light, int object_count, Shape *objects)
+int is_point_shadowed(Vec4D point, PointLight light, World world)
 {
     Vec4D v = d4_sub(light.position, point);
     double distance = d4_mag(v);
     Vec4D direction = d4_norm(v);
 
     Ray r = (Ray) { point, direction };
-    IntersectionList xs = ray_intersect_world(r, object_count, objects);
-
-    Intersection *h = hit(xs);
-    double ret = h && h->t < distance;
-    intersection_list_free(&xs);
+    Intersection h = ray_intersect_world(r, world);
+    double ret = h.t < distance;
     return ret;
 }

@@ -86,7 +86,7 @@ Vec4D ray_position(Ray ray, double t)
     return result;
 }
 
-IntersectionList ray_intersect_sphere(Ray ray, Shape *sphere) {
+double ray_intersect_sphere(Ray ray) {
     // Vector from sphere's centre to ray origin
     Vec4D sphere_to_ray = d4_sub(ray.origin, d4_point(0., 0., 0.));
 
@@ -96,29 +96,31 @@ IntersectionList ray_intersect_sphere(Ray ray, Shape *sphere) {
 
     double discriminant = b * b - 4 * a * c;
 
-    IntersectionList xs = intersection_list_new();
     if (discriminant < 0) {
-        return xs;
+        return INFINITY;
     }
 
     double root = sqrt(discriminant);
     double t1 = (-b - root) / (2 * a);
     double t2 = (-b + root) / (2 * a);
 
-    intersection_list_add(&xs, (Intersection){ t1, sphere });
-    intersection_list_add(&xs, (Intersection){ t2, sphere });
-    return xs;
+    double tmin = fmin(t1, t2);
+    double tmax = fmax(t1, t2);
+    if (tmin >= 0.0) {
+        return tmin;
+    } else if (tmax >= 0.0) {
+        return tmax;
+    }
+    return INFINITY;
 }
 
-IntersectionList ray_intersect_plane(Ray ray, Shape *plane) {
-    IntersectionList xs = intersection_list_new();
+double ray_intersect_plane(Ray ray) {
     if (fabs(ray.direction.y) < EPSILON) {
-        return xs;
+        return INFINITY;
     }
 
     double t = -ray.origin.y / ray.direction.y;
-    intersection_list_add(&xs, (Intersection) { t, plane });
-    return xs;
+    return t >= 0.0 ? t : INFINITY;
 }
 
 /// @brief Computes the smaller and larger t-values at which a ray will intersect the -1 and +1
@@ -146,7 +148,7 @@ void _cube_check_axis(double origin, double direction, double *tmin, double *tma
     }
 }
 
-IntersectionList ray_intersect_cube(Ray ray, Shape *cube) {
+double ray_intersect_cube(Ray ray) {
     double xtmin, xtmax, ytmin, ytmax, ztmin, ztmax;
     _cube_check_axis(ray.origin.x, ray.direction.x, &xtmin, &xtmax);
     _cube_check_axis(ray.origin.y, ray.direction.y, &ytmin, &ytmax);
@@ -155,14 +157,16 @@ IntersectionList ray_intersect_cube(Ray ray, Shape *cube) {
     double tmin = fmax(fmax(xtmin, ytmin), ztmin);
     double tmax = fmin(fmin(xtmax, ytmax), ztmax);
 
-    IntersectionList xs = intersection_list_new();
     if (tmin > tmax) {
-        return xs;
+        return INFINITY;
     }
 
-    intersection_list_add(&xs, (Intersection) { tmin, cube });
-    intersection_list_add(&xs, (Intersection) { tmin, cube });
-    return xs;
+    if (tmin >= 0.0) {
+        return tmin;
+    } else if (tmax >= 0.0) {
+        return tmax;
+    }
+    return INFINITY;
 }
 
 /// @brief Checks whether the intersection at `t` is within a radius of 1 from the y axis
@@ -172,31 +176,34 @@ int _check_cap(Ray ray, double t) {
     return (pow(x, 2.0) + pow(z, 2.0)) <= 1.0;
 }
 
-/// @brief Adds intersections with a cylinder's caps to the given list of intersections
-void _add_cap_intersections(Ray ray, Shape *cylinder, IntersectionList *xs) {
+/// @brief Returns the smallest non-negative t-value where the ray intersects with the given
+/// cylinder's end caps, or INFINITY if there is no such intersection.
+double _ray_intersect_cylinder_cap(Ray ray, Shape *cylinder) {
     if (!cylinder->closed || fabs(ray.direction.y) < EPSILON) {
-        return;
+        return INFINITY;
     }
 
     // Check lower end cap by intersecting ray with plane at y = cyl.minimum
-    double t = (cylinder->ymin - ray.origin.y) / ray.direction.y;
-    if (_check_cap(ray, t)) { 
-        intersection_list_add(xs, (Intersection) { t, cylinder });
+    double tlower = (cylinder->ymin - ray.origin.y) / ray.direction.y;
+    if (tlower < 0.0 || !_check_cap(ray, tlower)) { 
+        tlower = INFINITY;
     }
 
     // Check upper end cap by intersecting ray with plane at y = cyl.maximum
-    t = (cylinder->ymax - ray.origin.y) / ray.direction.y;
-    if (_check_cap(ray, t)) {
-        intersection_list_add(xs, (Intersection) { t, cylinder });
+    double tupper = (cylinder->ymax - ray.origin.y) / ray.direction.y;
+    if (tupper < 0.0 || !_check_cap(ray, tupper)) {
+        tupper = INFINITY;
     }
+
+    return fmin(tlower, tupper);
 }
 
-IntersectionList ray_intersect_cylinder(Ray ray, Shape *cylinder) {
+double _ray_intersect_cylinder_side(Ray ray, Shape *cylinder) {
     double a = pow(ray.direction.x, 2.0) + pow(ray.direction.z, 2.0);
 
     if (fabs(a) < EPSILON) {
         // Ray is parallel to the y axis
-        return intersection_list_new();
+        return INFINITY;
     }
 
     double b = 2.0 * ray.origin.x * ray.direction.x + 2.0 * ray.origin.z * ray.direction.z;
@@ -205,58 +212,56 @@ IntersectionList ray_intersect_cylinder(Ray ray, Shape *cylinder) {
 
     if (disc < 0.0) {
         // Ray does not intersect the cylinder
-        return intersection_list_new();
+        return INFINITY;
     }
 
     double t0 = (-b - sqrt(disc)) / (2.0 * a);
     double t1 = (-b + sqrt(disc)) / (2.0 * a);
 
     double tmin = fmin(t0, t1);
-    double tmax = fmax(t0, t1);
     double y0 = ray.origin.y + tmin * ray.direction.y;
+    if (tmin >= 0.0 && y0 > cylinder->ymin && y0 < cylinder->ymax) {
+        return tmin;
+    }
+
+    double tmax = fmax(t0, t1);
     double y1 = ray.origin.y + tmax * ray.direction.y;
-
-    IntersectionList xs = intersection_list_new();
-    if (y0 > cylinder->ymin && y0 < cylinder->ymax) {
-        intersection_list_add(&xs, (Intersection) { tmin, cylinder });
-    }
-    if (y1 > cylinder->ymin && y1 < cylinder->ymax) {
-        intersection_list_add(&xs, (Intersection) { tmax, cylinder });
+    if (tmax >= 0.0 && y1 > cylinder->ymin && y1 < cylinder->ymax) {
+        return tmax;
     }
 
-    _add_cap_intersections(ray, cylinder, &xs);
-    return xs;
+    return INFINITY;
 }
 
-IntersectionList ray_intersect_cone(Ray ray, Shape *cone) {
-    // TODO
-    return intersection_list_new();
+double ray_intersect_cylinder(Ray ray, Shape *cylinder) {
+    double t_side = _ray_intersect_cylinder_side(ray, cylinder);
+    double t_cap = _ray_intersect_cylinder_cap(ray, cylinder);
+    return fmin(t_side, t_cap);
 }
 
-IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
-{
+/// @brief Returns the smallest positive t-value at which the ray intersects the given shape.
+/// If there are no such t-values, returns INFINITY.
+double ray_intersect_shape(Ray ray, Shape *shape) {
     // Transform the ray into the shape's object space
     Mat4D inv = shape->inv_transform;
     Ray r = ray_transform(ray, inv);
 
     switch (shape->type) {
         case SHAPE_SPHERE:
-            return ray_intersect_sphere(r, shape);
+            return ray_intersect_sphere(r);
         case SHAPE_PLANE:
-            return ray_intersect_plane(r, shape);
+            return ray_intersect_plane(r);
         case SHAPE_CUBE:
-            return ray_intersect_cube(r, shape);
+            return ray_intersect_cube(r);
         case SHAPE_CYLINDER:
             return ray_intersect_cylinder(r, shape);
-        case SHAPE_CONE:
-            return ray_intersect_cone(r, shape);
         default:
             printf("Unrecognised shape %i", shape->type);
-            return intersection_list_new();
+            return INFINITY;
     }
 }
 
-IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects)
+Intersection ray_intersect_world(Ray ray, World world)
 {
     if (CFG_VERBOSE) {
         printf(
@@ -265,15 +270,16 @@ IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *object
             ray.direction.x, ray.direction.y, ray.direction.z
         );
     }
-    IntersectionList xs = intersection_list_new();
-    for (size_t i = 0; i < object_count; i++) {
-        IntersectionList sub_xs = ray_intersect_shape(ray, &objects[i]);
-        for (size_t j = 0; j < sub_xs.count; j++) {
-            intersection_list_add(&xs, sub_xs.items[j]);
+
+    Intersection best = (Intersection) { INFINITY, NULL };
+    for (size_t i = 0; i < world.object_count; i++) {
+        double t = ray_intersect_shape(ray, &world.objects[i]);
+        if (t < best.t) {
+            best = (Intersection) { t, &world.objects[i] };
         }
-        intersection_list_free(&sub_xs);
     }
-    return xs;
+    return best;
+
 }
 
 Intersection *hit(IntersectionList intersections) {
@@ -335,7 +341,7 @@ Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
     Color c = color_black();
     for (size_t i = 0; i < world.light_count; i++) {
         PointLight light = world.lights[i];
-        int in_shadow = is_point_shadowed(data.over_point, light, world.object_count, world.objects);
+        int in_shadow = is_point_shadowed(data.over_point, light, world);
 
         if (CFG_VERBOSE) {
             if (in_shadow) {
@@ -362,14 +368,12 @@ Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
 }
 
 Color ray_color(Ray ray, World world, int remaining_reflections) {
-    IntersectionList xs = ray_intersect_world(ray, world.object_count, world.objects);
-    Intersection *h = hit(xs);
-    if (!h) {
+    Intersection h = ray_intersect_world(ray, world);
+    if (h.t == INFINITY) {
         return color_black();
     }
 
-    IntersectionData data = ray_prepare_computations(ray, *h);
-    intersection_list_free(&xs);
+    IntersectionData data = ray_prepare_computations(ray, h);
 
     if (CFG_SINGLE_PIXEL_DEBUG) {
         printf("\n");
