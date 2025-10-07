@@ -26,7 +26,7 @@ set LIBPATH=/LIBPATH:..\vendor\OpenCL-SDK\install\lib
 
 REM Build OpenCL renderer
 cl %COMMON_FLAGS% ^
- %SOURCES% ^
+ %SOURCES% opencl\*.c ^
  /Febuild\beaker_opencl.exe ^
  /link %LIBPATH% OpenCL.lib
 
@@ -37,11 +37,12 @@ if %ERRORLEVEL% neq 0 (
 
 REM Build CPU renderer
 cl %COMMON_FLAGS% ^
- %SOURCES% ^
+ %SOURCES% cpu\*.c ^
  /Febuild\beaker_cpu.exe
 
 if %ERRORLEVEL% neq 0 (
     echo CPU build failed!
     exit /b %ERRORLEVEL%
 )
+
 
