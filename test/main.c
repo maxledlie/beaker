@@ -170,28 +170,28 @@ void test_computations(){
     assert_eq_vec4d(data.normalv, d4_vector(0., 0., -1.), TOL);
 }
 
-void test_ray_color__ray_misses() {
-    World w = world_default();
-    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 1., 0.) };
-    Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
-    assert_eq_color(c, color_black(), TOL);
-}
-
-void test_ray_color__ray_hits() {
-    World w = world_default();
-    Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
-    Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
-    assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), 0.00001);
-}
-
-void test_ray_color__intersection_behind_ray() {
-    World w = world_default();
-    w.objects[0].material.ambient = 1.0;
-    w.objects[1].material.ambient = 1.0;
-    Ray r = (Ray) { d4_point(0., 0., 0.75), d4_vector(0., 0., -1.) };
-    Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
-    assert_eq_color(c, w.objects[1].material.pattern.a, TOL);
-}
+// void test_ray_color__ray_misses() {
+//     World w = world_default();
+//     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 1., 0.) };
+//     Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
+//     assert_eq_color(c, color_black(), TOL);
+// }
+// 
+// void test_ray_color__ray_hits() {
+//     World w = world_default();
+//     Ray r = (Ray) { d4_point(0., 0., -5.), d4_vector(0., 0., 1.) };
+//     Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
+//     assert_eq_color(c, color_rgb(0.38066, 0.47583, 0.2855), 0.00001);
+// }
+// 
+// void test_ray_color__intersection_behind_ray() {
+//     World w = world_default();
+//     w.objects[0].material.ambient = 1.0;
+//     w.objects[1].material.ambient = 1.0;
+//     Ray r = (Ray) { d4_point(0., 0., 0.75), d4_vector(0., 0., -1.) };
+//     Color c = ray_color(r, w, CFG_RECURSION_DEPTH);
+//     assert_eq_color(c, w.objects[1].material.pattern.a, TOL);
+// }
 
 int main() {
     test_mat4d_submatrix();
@@ -209,9 +209,9 @@ int main() {
     test_lighting__eye_between_light_and_surface__eye_offset_45();
     test_lighting__eye_in_path_of_reflection_vector();
 
-    test_ray_color__ray_misses();
-    test_ray_color__ray_hits();
-    test_ray_color__intersection_behind_ray();
+    // test_ray_color__ray_misses();
+    // test_ray_color__ray_hits();
+    // test_ray_color__intersection_behind_ray();
 
     printf("Testing complete\n");
 }

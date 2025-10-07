@@ -8,3 +8,5 @@ static const int CFG_SINGLE_PIXEL_Y = 9;
 static const int CFG_VERBOSE = 0;
 
 static const double EPSILON = 0.0000001;
+static const size_t MAX_GROUPS = 512;
+static const size_t MAX_LIGHTS = 32;

@@ -37,36 +37,47 @@ int main() {
 
     // Create a group describing a square made of cylinders and spheres
     material = material_default();
-    transform = mat4d_identity();
     transform = translation(-5.0, 0.0, 0.0);
-    Shape left = cylinder_new(transform, material, "window_left", -5.0, -5.0, 1);
+    Shape left = cylinder_new(transform, material, "window_left", -5.0, 5.0, 1);
 
     transform = translation(5.0, 0.0, 0.0);
     Shape right = cylinder_new(transform, material, "window_right", -5.0, 5.0, 1);
 
-    transform = mat4d_mul_mat4d(translation(0.0, 5.0, 0.0), rotation_z(M_PI / 4.0));
+    transform = mat4d_mul_mat4d(translation(0.0, 5.0, 0.0), rotation_z(M_PI / 2.0));
     Shape top = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
 
-    transform = mat4d_mul_mat4d(translation(0.0, -5.0, 0.0), rotation_z(M_PI / 4.0));
+    transform = mat4d_mul_mat4d(translation(0.0, -5.0, 0.0), rotation_z(M_PI / 2.0));
     Shape bottom = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
+
+    transform = translation(-5.0, 5.0, 0.0);
+    Shape top_left = sphere_new(transform, material, "window_top_left");
+
+    transform = translation(5.0, 5.0, 0.0);
+    Shape top_right = sphere_new(transform, material, "window_top_right");
+
+    transform = translation(-5.0, -5.0, 0.0);
+    Shape bottom_left = sphere_new(transform, material, "window_bottom_left");
+
+    transform = translation(5.0, -5.0, 0.0);
+    Shape bottom_right = sphere_new(transform, material, "window_bottom_right");
+
+    World world = world_new(MAX_GROUPS, MAX_LIGHTS);
+    world_add_shape(&world, &left);
+    world_add_shape(&world, &right);
+    world_add_shape(&world, &top);
+    world_add_shape(&world, &bottom);
+    world_add_shape(&world, &bottom_left);
+    world_add_shape(&world, &top_left);
+    world_add_shape(&world, &bottom_right);
+    world_add_shape(&world, &top_right);
 
     Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
-
-    World world = world_new();
-    world.object_count = 4;
-    world.objects = malloc(world.object_count * sizeof(Shape));
-    world.objects[0] = left;
-    world.objects[1] = right;
-    world.objects[2] = top;
-    world.objects[3] = bottom;
-    world.light_count = 1;
-    world.lights = malloc(world.light_count * sizeof(PointLight));
-    world.lights[0] = light;
+    world_add_light(&world, light);
 
     Mat4D view = view_transform(
-        d4_point(0.0, 2.0, -8.0),
+        d4_point(-2.0, 4.0, -20.0),
         d4_point(0., 0., 0.),
         d4_vector(0., 1., 0.)
     );
@@ -96,7 +107,6 @@ int main() {
     canvas_save_ppm(canvas, "out.ppm");
 
     // Free stuff to keep address sanitizer happy
-    free(world.lights);
-    free(world.objects);
+    world_free(&world);
     canvas_destroy(canvas);
 }

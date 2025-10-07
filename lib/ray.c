@@ -256,7 +256,21 @@ IntersectionList ray_intersect_shape(Ray ray, Shape *shape)
     }
 }
 
-IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects)
+IntersectionList ray_intersect_group(Ray ray, Group group)
+{
+    IntersectionList xs = intersection_list_new();
+    for (size_t i = 0; i < group.num_children; i++) {
+        IntersectionList sub_xs = ray_intersect_shape(ray, &group.children[i]);
+        for (size_t j = 0; j < sub_xs.count; j++) {
+            intersection_list_add(&xs, sub_xs.items[j]);
+        }
+        intersection_list_free(&sub_xs);
+    }
+    return xs;
+}
+
+
+IntersectionList ray_intersect_world(Ray ray, World world)
 {
     if (CFG_VERBOSE) {
         printf(
@@ -266,8 +280,8 @@ IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *object
         );
     }
     IntersectionList xs = intersection_list_new();
-    for (size_t i = 0; i < object_count; i++) {
-        IntersectionList sub_xs = ray_intersect_shape(ray, &objects[i]);
+    for (size_t i = 0; i < world.group_count; i++) {
+        IntersectionList sub_xs = ray_intersect_group(ray, world.groups[i]);
         for (size_t j = 0; j < sub_xs.count; j++) {
             intersection_list_add(&xs, sub_xs.items[j]);
         }
@@ -335,7 +349,7 @@ Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
     Color c = color_black();
     for (size_t i = 0; i < world.light_count; i++) {
         PointLight light = world.lights[i];
-        int in_shadow = is_point_shadowed(data.over_point, light, world.object_count, world.objects);
+        int in_shadow = is_point_shadowed(data.over_point, light, world);
 
         if (CFG_VERBOSE) {
             if (in_shadow) {
@@ -362,7 +376,7 @@ Color shade_hit(World world, IntersectionData data, int remaining_reflections) {
 }
 
 Color ray_color(Ray ray, World world, int remaining_reflections) {
-    IntersectionList xs = ray_intersect_world(ray, world.object_count, world.objects);
+    IntersectionList xs = ray_intersect_world(ray, world);
     Intersection *h = hit(xs);
     if (!h) {
         return color_black();

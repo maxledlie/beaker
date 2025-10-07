@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <matrix.h>
 #include <material.h>
 
@@ -27,7 +28,7 @@ typedef struct {
     Mat4D transform;
     Mat4D inv_transform;
     char name[SHAPE_NAME_LEN];
-    int num_children;
+    size_t num_children;
     Shape *children;
 } Group;
 

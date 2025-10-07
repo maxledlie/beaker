@@ -5,38 +5,41 @@
 #include <ray.h>
 
 /// Returns an empty world with no light and no objects
-World world_new()
+World world_new(size_t max_groups, size_t max_lights)
 {
-    return (World) { 0, NULL, 0, NULL };
+    Group *groups = malloc(max_groups * sizeof(Group));
+    PointLight *lights = malloc(max_lights * sizeof(PointLight));
+    return (World) { 0, lights, 0, groups };
 }
 
-/// Returns a placeholder world for testing.
-/// Contains a single white point light at (-10, 10, -10) and two concentric spheres at the origin with radii 0.5 and 1.
-World world_default()
-{
-    PointLight *lights = malloc(sizeof(PointLight));
-    lights[0] = (PointLight) { d4_point(-10., 10., -10.), color_rgb(1., 1., 1.) };
-
-    Shape *objects = malloc(2 * sizeof(Shape));
-    Material material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(0.8, 1.0, 0.6), mat4d_identity());
-    material.diffuse = 0.7;
-    material.specular = 0.2;
-    objects[0] = sphere_new(mat4d_identity(), material, "sphere_outer");
-
-    objects[1] = sphere_new(scaling(0.5, 0.5, 0.5), material_default(), "sphere_inner");
-
-    return (World) { 1, lights, 2, objects};
+void world_free(World *world) {
+    free(world->groups);
+    free(world->lights);
 }
 
-int is_point_shadowed(Vec4D point, PointLight light, int object_count, Shape *objects)
+void world_add_shape(World *w, Shape *s)
+{
+    Group g = group_new(mat4d_identity(), 1, s, s->name);
+    world_add_group(w, g);
+}
+
+void world_add_group(World *w, Group g)
+{
+    w->groups[w->group_count++] = g;
+}
+
+void world_add_light(World *w, PointLight light) {
+    w->lights[w->light_count++] = light;
+}
+
+int is_point_shadowed(Vec4D point, PointLight light, World world)
 {
     Vec4D v = d4_sub(light.position, point);
     double distance = d4_mag(v);
     Vec4D direction = d4_norm(v);
 
     Ray r = (Ray) { point, direction };
-    IntersectionList xs = ray_intersect_world(r, object_count, objects);
+    IntersectionList xs = ray_intersect_world(r, world);
 
     Intersection *h = hit(xs);
     double ret = h && h->t < distance;

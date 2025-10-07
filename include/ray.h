@@ -57,7 +57,8 @@ Ray ray_transform(Ray ray, Mat4D transform);
 Vec4D ray_position(Ray ray, double t);
 
 /// Returns the t-values at which the given ray intersects various objects.
-IntersectionList ray_intersect_world(Ray ray, size_t object_count, Shape *objects);
+IntersectionList ray_intersect_world(Ray ray, World world);
+IntersectionList ray_intersect_group(Ray ray, Group group);
 IntersectionList ray_intersect_shape(Ray ray, Shape *shape);
 
 /// Returns the intersection with the smallest positive t-value,
