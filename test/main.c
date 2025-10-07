@@ -68,14 +68,14 @@ void test_mat4d_inverse() {
 // ----------------------------
 
 /// A sphere is behind a ray
-void test_ray_intersect_sphere__sphere_behind_ray() {
-    Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
-    Shape sphere = sphere_default();
-    IntersectionList xs = ray_intersect_shape(ray, &sphere);
-    assert_eq_int(xs.count, 2);
-    assert_eq_double(xs.items[0].t, -6.0, TOL);
-    assert_eq_double(xs.items[1].t, -4.0, TOL);
-}
+// void test_ray_intersect_sphere__sphere_behind_ray() {
+//     Ray ray = { d4_point(0.0, 0.0, 5.0), d4_vector(0.0, 0.0, 1.0) };
+//     Shape sphere = sphere_default();
+//     IntersectionList xs = ray_intersect_shape(ray, &sphere);
+//     assert_eq_int(xs.count, 2);
+//     assert_eq_double(xs.items[0].t, -6.0, TOL);
+//     assert_eq_double(xs.items[1].t, -4.0, TOL);
+// }
 
 void test_ray_position() {
     Ray ray = { d4_point(2., 3., 4.), d4_vector(1., 0., 0.) };
@@ -89,17 +89,6 @@ void test_sphere_normal__translated() {
     Shape sphere = sphere_new(translation(0.0, 1.0, 0.0), material_default(), "debug");
     Vec4D n = shape_normal(&sphere, d4_point(0.0, 1.70711, -0.70711));
     assert_eq_vec4d(n, d4_vector(0.0, 0.70711, -0.70711), 0.00001);
-}
-
-void test_hit__all_intersections_positive_t() {
-    Shape sphere = sphere_default();
-    IntersectionList xs = intersection_list_new();
-    Intersection i1 = { 1.0, &sphere };
-    Intersection i2 = { 2.0, &sphere };
-    intersection_list_add(&xs, i2);
-    intersection_list_add(&xs, i1);
-    Intersection *i = hit(xs);
-    assert_eq_double(i->t, 1.0, TOL);
 }
 
 /// --------------------------
