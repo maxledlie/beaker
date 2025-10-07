@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -274,6 +275,7 @@ Intersection ray_intersect_world(Ray ray, World world)
     Intersection best = (Intersection) { INFINITY, NULL };
     for (size_t i = 0; i < world.object_count; i++) {
         double t = ray_intersect_shape(ray, &world.objects[i]);
+        assert(t >= 0.0);
         if (t < best.t) {
             best = (Intersection) { t, &world.objects[i] };
         }

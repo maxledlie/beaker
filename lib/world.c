@@ -37,6 +37,5 @@ int is_point_shadowed(Vec4D point, PointLight light, World world)
 
     Ray r = (Ray) { point, direction };
     Intersection h = ray_intersect_world(r, world);
-    double ret = h.t < distance;
-    return ret;
+    return h.t < distance;
 }
