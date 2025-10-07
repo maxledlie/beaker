@@ -51,7 +51,8 @@ Camera camera_new(
         inv_transform,
         half_width,
         half_height,
-        pixel_size
+        pixel_size,
+        field_of_view
     };
 }
 

@@ -10,6 +10,7 @@ typedef struct {
     double half_width;
     double half_height;
     double pixel_size;
+    double field_of_view;
 } Camera;
 
 Camera camera_new(

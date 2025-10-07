@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <direct.h>
+
+#include <CL/cl.h>
 
 #include <config.h>
 #include <color.h>
@@ -14,6 +17,7 @@
 #include <matrix.h>
 #include <ray.h>
 #include <lighting.h>
+#include <renderer.h>
 
 // Config
 void log_line(char *msg) {
@@ -27,6 +31,8 @@ void log_line(char *msg) {
     );
 }
 
+#define CANVAS_WIDTH 1000
+#define CANVAS_HEIGHT 800
 
 int main() {
     log_line("Starting scene configuration");
@@ -135,13 +141,7 @@ int main() {
 
     // Render
     log_line("Starting render");
-    for (int y = 0; y < camera.vsize; y++) {
-        for (int x = 0; x < camera.hsize; x++) {
-            Ray ray = ray_at_pixel(camera, x, y);
-            Color c = ray_color(ray, world, CFG_RECURSION_DEPTH);
-            canvas_pixel_set(canvas, x, y, c);
-        }
-    }
+    render_image(world, camera, canvas);
     log_line("Completed render");
     canvas_save_ppm(canvas, "out.ppm");
 
