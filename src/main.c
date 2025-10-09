@@ -11,12 +11,12 @@
 
 #include <CL/cl.h>
 
-// #include <config.h>
-// #include <color.h>
-// #include <canvas.h>
-// #include <matrix.h>
-// #include <ray.h>
-// #include <lighting.h>
+#include <config.h>
+#include <color.h>
+#include <canvas.h>
+#include <matrix.h>
+#include <ray.h>
+#include <lighting.h>
 
 // Config
 void log_line(char *msg) {
@@ -28,6 +28,88 @@ void log_line(char *msg) {
         utc_time->tm_sec,
         msg
     );
+}
+
+int main() {
+    log_line("Starting scene configuration");
+
+    Mat4D transform;
+    Material material;
+
+    // Create a group describing a square made of cylinders and spheres
+    material = material_default();
+    transform = translation(-5.0, 0.0, 0.0);
+    Shape left = cylinder_new(transform, material, "window_left", -5.0, 5.0, 1);
+
+    transform = translation(5.0, 0.0, 0.0);
+    Shape right = cylinder_new(transform, material, "window_right", -5.0, 5.0, 1);
+
+    transform = mat4d_mul_mat4d(translation(0.0, 5.0, 0.0), rotation_z(M_PI / 2.0));
+    Shape top = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
+
+    transform = mat4d_mul_mat4d(translation(0.0, -5.0, 0.0), rotation_z(M_PI / 2.0));
+    Shape bottom = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
+
+    transform = translation(-5.0, 5.0, 0.0);
+    Shape top_left = sphere_new(transform, material, "window_top_left");
+
+    transform = translation(5.0, 5.0, 0.0);
+    Shape top_right = sphere_new(transform, material, "window_top_right");
+
+    transform = translation(-5.0, -5.0, 0.0);
+    Shape bottom_left = sphere_new(transform, material, "window_bottom_left");
+
+    transform = translation(5.0, -5.0, 0.0);
+    Shape bottom_right = sphere_new(transform, material, "window_bottom_right");
+
+    World world = world_new(MAX_GROUPS, MAX_LIGHTS);
+    world_add_shape(&world, &left);
+    world_add_shape(&world, &right);
+    world_add_shape(&world, &top);
+    world_add_shape(&world, &bottom);
+    world_add_shape(&world, &bottom_left);
+    world_add_shape(&world, &top_left);
+    world_add_shape(&world, &bottom_right);
+    world_add_shape(&world, &top_right);
+
+    Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
+    Color light_color = (Color) {1.0, 1.0, 1.0};
+    PointLight light = (PointLight) { light_position, light_color };
+    world_add_light(&world, light);
+
+    Mat4D view = view_transform(
+        d4_point(-2.0, 4.0, -20.0),
+        d4_point(0., 0., 0.),
+        d4_vector(0., 1., 0.)
+    );
+    Camera camera = camera_new(1200, 900, M_PI / 3., view);
+    Canvas canvas = canvas_create(camera.hsize, camera.vsize);
+
+    log_line("Completed scene configuration");
+
+    if (CFG_SINGLE_PIXEL_DEBUG) {
+        printf("Debugging single pixel at (%d, %d)\n", CFG_SINGLE_PIXEL_X, CFG_SINGLE_PIXEL_Y);
+        Ray ray = ray_at_pixel(camera, CFG_SINGLE_PIXEL_X, CFG_SINGLE_PIXEL_Y);
+        Color c = ray_color(ray, world, CFG_RECURSION_DEPTH);
+        printf("Output color: (%f, %f, %f)\n", c.r, c.g, c.b);
+        return 0;
+    }
+
+    // Render
+    log_line("Starting render");
+    for (int y = 0; y < camera.vsize; y++) {
+        for (int x = 0; x < camera.hsize; x++) {
+            Ray ray = ray_at_pixel(camera, x, y);
+            Color c = ray_color(ray, world, CFG_RECURSION_DEPTH);
+            canvas_pixel_set(canvas, x, y, c);
+        }
+    }
+    log_line("Completed render");
+    canvas_save_ppm(canvas, "out.ppm");
+
+    // Free stuff to keep address sanitizer happy
+    world_free(&world);
+    canvas_destroy(canvas);
 }
 
 const cl_uint MAX_PLATFORMS = 8;
@@ -188,7 +270,7 @@ int create_mem_objects(cl_context context, cl_mem mem_objects[3], float *a, floa
     return 1;
 }
 
-int main() {
+int gpu_main() {
     // Check current working directory
     char cwd[1024];
     if (_getcwd(cwd, sizeof(cwd)) != NULL) {

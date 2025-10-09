@@ -15,7 +15,8 @@ cl ^
  /W4 ^
  /DCL_TARGET_OPENCL_VERSION=100 ^
  /I..\vendor\OpenCL-SDK\install\include ^
- src\main.c ^
+ /Iinclude ^
+ src\*.c lib\*.c^
  /std:c11 ^
  /Fobuild\ ^
  /Fdbuild\main.pdb ^
