@@ -30,92 +30,13 @@ void log_line(char *msg) {
     );
 }
 
-int main() {
-    log_line("Starting scene configuration");
-
-    Mat4D transform;
-    Material material;
-
-    // Create a group describing a square made of cylinders and spheres
-    material = material_default();
-    transform = translation(-5.0, 0.0, 0.0);
-    Shape left = cylinder_new(transform, material, "window_left", -5.0, 5.0, 1);
-
-    transform = translation(5.0, 0.0, 0.0);
-    Shape right = cylinder_new(transform, material, "window_right", -5.0, 5.0, 1);
-
-    transform = mat4d_mul_mat4d(translation(0.0, 5.0, 0.0), rotation_z(M_PI / 2.0));
-    Shape top = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
-
-    transform = mat4d_mul_mat4d(translation(0.0, -5.0, 0.0), rotation_z(M_PI / 2.0));
-    Shape bottom = cylinder_new(transform, material, "window_top", -5.0, 5.0, 1);
-
-    transform = translation(-5.0, 5.0, 0.0);
-    Shape top_left = sphere_new(transform, material, "window_top_left");
-
-    transform = translation(5.0, 5.0, 0.0);
-    Shape top_right = sphere_new(transform, material, "window_top_right");
-
-    transform = translation(-5.0, -5.0, 0.0);
-    Shape bottom_left = sphere_new(transform, material, "window_bottom_left");
-
-    transform = translation(5.0, -5.0, 0.0);
-    Shape bottom_right = sphere_new(transform, material, "window_bottom_right");
-
-    World world = world_new(MAX_GROUPS, MAX_LIGHTS);
-    world_add_shape(&world, &left);
-    world_add_shape(&world, &right);
-    world_add_shape(&world, &top);
-    world_add_shape(&world, &bottom);
-    world_add_shape(&world, &bottom_left);
-    world_add_shape(&world, &top_left);
-    world_add_shape(&world, &bottom_right);
-    world_add_shape(&world, &top_right);
-
-    Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
-    Color light_color = (Color) {1.0, 1.0, 1.0};
-    PointLight light = (PointLight) { light_position, light_color };
-    world_add_light(&world, light);
-
-    Mat4D view = view_transform(
-        d4_point(-2.0, 4.0, -20.0),
-        d4_point(0., 0., 0.),
-        d4_vector(0., 1., 0.)
-    );
-    Camera camera = camera_new(1200, 900, M_PI / 3., view);
-    Canvas canvas = canvas_create(camera.hsize, camera.vsize);
-
-    log_line("Completed scene configuration");
-
-    if (CFG_SINGLE_PIXEL_DEBUG) {
-        printf("Debugging single pixel at (%d, %d)\n", CFG_SINGLE_PIXEL_X, CFG_SINGLE_PIXEL_Y);
-        Ray ray = ray_at_pixel(camera, CFG_SINGLE_PIXEL_X, CFG_SINGLE_PIXEL_Y);
-        Color c = ray_color(ray, world, CFG_RECURSION_DEPTH);
-        printf("Output color: (%f, %f, %f)\n", c.r, c.g, c.b);
-        return 0;
-    }
-
-    // Render
-    log_line("Starting render");
-    for (int y = 0; y < camera.vsize; y++) {
-        for (int x = 0; x < camera.hsize; x++) {
-            Ray ray = ray_at_pixel(camera, x, y);
-            Color c = ray_color(ray, world, CFG_RECURSION_DEPTH);
-            canvas_pixel_set(canvas, x, y, c);
-        }
-    }
-    log_line("Completed render");
-    canvas_save_ppm(canvas, "out.ppm");
-
-    // Free stuff to keep address sanitizer happy
-    world_free(&world);
-    canvas_destroy(canvas);
-}
+#define CANVAS_WIDTH 20
+#define CANVAS_HEIGHT 20
+#define NUM_SPHERES 2
 
 const cl_uint MAX_PLATFORMS = 8;
 const cl_uint MAX_PLATFORM_NAME_LEN = 32;
 const cl_uint MAX_DEVICES = 8;
-#define ARRAY_SIZE 1024
 
 cl_context create_context() {
     // Select an OpenCL platform to run on. For now, just use the default.
@@ -234,35 +155,44 @@ cl_program create_program(cl_context context, cl_device_id device, const char *f
     return program;
 }
 
-int create_mem_objects(cl_context context, cl_mem mem_objects[3], float *a, float *b) {
-    // Create buffer for input a
+int create_mem_objects(cl_context context, cl_mem mem_objects[4], float *xs, float *ys, float *rs) {
+    // Create buffer for xs
     mem_objects[0] = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * ARRAY_SIZE,
-        a,
+        sizeof(float) * NUM_SPHERES,
+        xs,
         NULL
     );
 
-    // Create buffer for input b
+    // Create buffer for ys
     mem_objects[1] = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * ARRAY_SIZE,
-        b,
+        sizeof(float) * NUM_SPHERES,
+        ys,
+        NULL
+    );
+
+    // Create buffer for rs
+    mem_objects[2] = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(float) * NUM_SPHERES,
+        rs,
         NULL
     );
 
     // Create buffer for result
-    mem_objects[2] = clCreateBuffer(
+    mem_objects[3] = clCreateBuffer(
         context,
         CL_MEM_READ_WRITE,
-        sizeof(float) * ARRAY_SIZE,
+        sizeof(float) * CANVAS_WIDTH * CANVAS_HEIGHT,
         NULL,
         NULL
     );
 
-    if (mem_objects[0] == NULL || mem_objects[1] == NULL || mem_objects[2] == NULL) {
+    if (mem_objects[0] == NULL || mem_objects[1] == NULL || mem_objects[2] == NULL || mem_objects[3] == NULL) {
         fprintf(stderr, "Error creating memory objects.\n");
         return 0;
     }
@@ -270,16 +200,8 @@ int create_mem_objects(cl_context context, cl_mem mem_objects[3], float *a, floa
     return 1;
 }
 
-int gpu_main() {
-    // Check current working directory
-    char cwd[1024];
-    if (_getcwd(cwd, sizeof(cwd)) != NULL) {
-        printf("Current working directoory: %s\n", cwd);
-    }
-    else {
-        fprintf(stderr, "_getcwd() error");
-    }
-    
+/// @brief Returns an OpenCL context, kernel and command queue.
+int init_opencl(cl_context *out_context, cl_command_queue *out_command_queue, cl_kernel *out_kernel) {
     // Create an OpenCL context on first available platform
     cl_context context = create_context();
     if (context == NULL) {
@@ -301,38 +223,48 @@ int gpu_main() {
     }
 
     // Create OpenCL kernel
-    cl_kernel kernel = clCreateKernel(program, "hello_kernel", NULL);
+    cl_int kernel_err;
+    cl_kernel kernel = clCreateKernel(program, "hello_kernel", &kernel_err);
     if (kernel == NULL) {
-        fprintf(stderr, "Failed to create kernel\n");
+        fprintf(stderr, "Failed to create kernel. Error code %d\n", kernel_err);
+        return 1;
+    }
+
+    *out_context = context;
+    *out_command_queue = command_queue;
+    *out_kernel = kernel;
+    return 0;
+}
+
+int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
+    cl_context context;
+    cl_command_queue command_queue;
+    cl_kernel kernel;
+    if (init_opencl(&context, &command_queue, &kernel)) {
         return 1;
     }
 
     // Create memory objects that will be used as arguments to the kernel.
     // First, create host memory arrays that will be used to store the arguments to the kernel.
-    float result[ARRAY_SIZE];
-    float a[ARRAY_SIZE];
-    float b[ARRAY_SIZE];
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-        a[i] = (float)i;
-        b[i] = (float)(i * 2);
-    }
+    float *result = malloc(canvas.width * canvas.height * sizeof(float));
 
     cl_mem mem_objects[3] = { 0, 0, 0 };
-    if (!create_mem_objects(context, mem_objects, a, b)) {
+    if (!create_mem_objects(context, mem_objects, xs, ys, rs)) {
         return 1;
     }
 
-    // Set the kernel arguments (result, a, b)
+    // Set the kernel arguments (result, xs, ys, rs)
     cl_int err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem_objects[0]);
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &mem_objects[1]);
     err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &mem_objects[2]);
+    err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &mem_objects[3]);
 
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error setting kernel arguments.\n");
         return 1;
     }
 
-    size_t global_work_size[1] = { ARRAY_SIZE };
+    size_t global_work_size[1] = { CANVAS_WIDTH * CANVAS_HEIGHT };
     size_t local_work_size[1] = { 1 };
 
     // Queue the kernel up for execution across the array
@@ -344,18 +276,39 @@ int gpu_main() {
     }
 
     // Read the output buffer back to the host
-    err = clEnqueueReadBuffer(command_queue, mem_objects[2], CL_TRUE, 0, ARRAY_SIZE * sizeof(float), result, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(command_queue, mem_objects[2], CL_TRUE, 0, CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(float), result, 0, NULL, NULL);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error reading result buffer.\n");
         return 1;
     }
 
     // Output the result buffer
-    for (int i = 0; i < ARRAY_SIZE; i++) {
+    for (int i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT; i++) {
         printf("%f ", result[i]);
     }
     printf("\n");
     printf("Executed program successfully.\n");
 
     return 0;
+}
+
+
+int main() {
+    log_line("Starting scene configuration\n");
+
+    float xs[NUM_SPHERES] = { 8.0, 16.0 };
+    float ys[NUM_SPHERES] = { 5.0, 10.0 };
+    float rs[NUM_SPHERES] = { 3.0, 5.0 };
+
+    Canvas canvas = canvas_create(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Render
+    log_line("Starting pixel computations");
+    gpu_main(canvas, xs, ys, rs);
+    log_line("Completed pixel computations");
+
+    canvas_save_ppm(canvas, "out.ppm");
+
+    // Free stuff to keep address sanitizer happy
+    canvas_destroy(canvas);
 }
