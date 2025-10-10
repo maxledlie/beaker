@@ -30,8 +30,8 @@ void log_line(char *msg) {
     );
 }
 
-#define CANVAS_WIDTH 20
-#define CANVAS_HEIGHT 20
+#define CANVAS_WIDTH 1000
+#define CANVAS_HEIGHT 800
 #define NUM_SPHERES 2
 
 const cl_uint MAX_PLATFORMS = 8;
@@ -261,10 +261,7 @@ int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
     }
 
     // Create memory objects that will be used as arguments to the kernel.
-    // First, create host memory arrays that will be used to store the arguments to the kernel.
-    float *result = malloc(canvas.width * canvas.height * sizeof(float));
-
-    cl_mem mem_objects[3] = { 0, 0, 0 };
+    cl_mem mem_objects[6] = { 0, 0, 0, 0, 0, 0 };
     int ns = NUM_SPHERES;
     int cw = CANVAS_WIDTH;
     if (!create_mem_objects(context, mem_objects, &ns, xs, ys, rs, &cw)) {
@@ -276,6 +273,8 @@ int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &mem_objects[1]);
     err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &mem_objects[2]);
     err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &mem_objects[3]);
+    err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &mem_objects[4]);
+    err |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &mem_objects[5]);
 
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error setting kernel arguments.\n");
@@ -289,22 +288,27 @@ int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
     err = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
     if (err != CL_SUCCESS) {
-        fprintf(stderr, "Error queueing kernel for execution\n");
+        fprintf(stderr, "Error queueing kernel for execution. Error code %d\n", err);
         return 1;
     }
 
     // Read the output buffer back to the host
-    err = clEnqueueReadBuffer(command_queue, mem_objects[2], CL_TRUE, 0, CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(float), result, 0, NULL, NULL);
+    float *result = malloc(canvas.width * canvas.height * sizeof(float));
+    err = clEnqueueReadBuffer(command_queue, mem_objects[5], CL_TRUE, 0, CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(float), result, 0, NULL, NULL);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error reading result buffer.\n");
         return 1;
     }
 
     // Output the result buffer
-    for (int i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT; i++) {
-        printf("%f ", result[i]);
+    for (int y = 0; y < CANVAS_HEIGHT; y++) {
+        for (int x = 0; x < CANVAS_WIDTH; x++) {
+            int idx = CANVAS_WIDTH * y + x;
+            if (result[idx] == 1.0) {
+                canvas_pixel_set(canvas, x, y, color_rgb(1.0, 0.0, 0.0));
+            }
+        }
     }
-    printf("\n");
     printf("Executed program successfully.\n");
 
     return 0;
@@ -314,9 +318,9 @@ int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
 int main() {
     log_line("Starting scene configuration\n");
 
-    float xs[NUM_SPHERES] = { 8.0, 16.0 };
-    float ys[NUM_SPHERES] = { 5.0, 10.0 };
-    float rs[NUM_SPHERES] = { 3.0, 5.0 };
+    float xs[NUM_SPHERES] = { 80.0, 560.0 };
+    float ys[NUM_SPHERES] = { 50.0, 600.0 };
+    float rs[NUM_SPHERES] = { 300.0, 200.0 };
 
     Canvas canvas = canvas_create(CANVAS_WIDTH, CANVAS_HEIGHT);
 

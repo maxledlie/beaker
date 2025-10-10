@@ -10,19 +10,19 @@ __kernel void circles_kernel(
     __global const uint *img_width,
     __global float *result
 ) {
-    int pixel_x = get_global_id(0);
-    int pixel_y = get_global_id(1);
+    int index = get_global_id(0);
+    int pixel_x = index % *img_width;
+    int pixel_y = index / *img_width;
     float2 pixel = (float2)(pixel_x, pixel_y);
 
-    bool in_circle = false;
+    float in_circle = 0.0f;
     for (int i = 0; i < *num_circles; i++) {
         float2 circle = (float2)(circle_xs[i], circle_ys[i]);
         float radius = circle_radii[i];
         if (distance(circle, pixel) <= radius) {
-            in_circle = true;
+            in_circle = 1.0f;
         }
     }
     
-    uint index = *img_width * pixel_y + pixel_x;
-    result[index] = (float)in_circle;
+    result[index] = in_circle;
 }
