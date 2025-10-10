@@ -155,9 +155,17 @@ cl_program create_program(cl_context context, cl_device_id device, const char *f
     return program;
 }
 
-int create_mem_objects(cl_context context, cl_mem mem_objects[4], float *xs, float *ys, float *rs) {
-    // Create buffer for xs
+int create_mem_objects(cl_context context, cl_mem mem_objects[4], int *num_circles, float *xs, float *ys, float *rs, int *img_width) {
     mem_objects[0] = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(int),
+        num_circles,
+        NULL
+    );
+
+    // Create buffer for xs
+    mem_objects[1] = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
         sizeof(float) * NUM_SPHERES,
@@ -166,7 +174,7 @@ int create_mem_objects(cl_context context, cl_mem mem_objects[4], float *xs, flo
     );
 
     // Create buffer for ys
-    mem_objects[1] = clCreateBuffer(
+    mem_objects[2] = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
         sizeof(float) * NUM_SPHERES,
@@ -175,7 +183,7 @@ int create_mem_objects(cl_context context, cl_mem mem_objects[4], float *xs, flo
     );
 
     // Create buffer for rs
-    mem_objects[2] = clCreateBuffer(
+    mem_objects[3] = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
         sizeof(float) * NUM_SPHERES,
@@ -183,8 +191,16 @@ int create_mem_objects(cl_context context, cl_mem mem_objects[4], float *xs, flo
         NULL
     );
 
+    mem_objects[4] = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(int),
+        img_width,
+        NULL
+    );
+
     // Create buffer for result
-    mem_objects[3] = clCreateBuffer(
+    mem_objects[5] = clCreateBuffer(
         context,
         CL_MEM_READ_WRITE,
         sizeof(float) * CANVAS_WIDTH * CANVAS_HEIGHT,
@@ -224,7 +240,7 @@ int init_opencl(cl_context *out_context, cl_command_queue *out_command_queue, cl
 
     // Create OpenCL kernel
     cl_int kernel_err;
-    cl_kernel kernel = clCreateKernel(program, "hello_kernel", &kernel_err);
+    cl_kernel kernel = clCreateKernel(program, "circles_kernel", &kernel_err);
     if (kernel == NULL) {
         fprintf(stderr, "Failed to create kernel. Error code %d\n", kernel_err);
         return 1;
@@ -249,7 +265,9 @@ int gpu_main(Canvas canvas, float *xs, float *ys, float *rs) {
     float *result = malloc(canvas.width * canvas.height * sizeof(float));
 
     cl_mem mem_objects[3] = { 0, 0, 0 };
-    if (!create_mem_objects(context, mem_objects, xs, ys, rs)) {
+    int ns = NUM_SPHERES;
+    int cw = CANVAS_WIDTH;
+    if (!create_mem_objects(context, mem_objects, &ns, xs, ys, rs, &cw)) {
         return 1;
     }
 
