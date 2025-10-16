@@ -13,6 +13,16 @@ const cl_uint MAX_DEVICES = 8;
 
 // Replicating structs expected by the OpenCL code.
 // It's pretty tedious to define them all in both places - is there a better way?
+int marshall_mat4(Mat4D *in, float out[16]) {
+    for (int iRow = 0; iRow < 4; iRow++) {
+        for (int jCol = 0; jCol < 4; jCol++) {
+            int idx = 4 * iRow + jCol;
+            out[idx] = (float)in->m[iRow][jCol];
+        }
+    }
+    return 0;
+}
+
 typedef struct {
     float inv_transform[16];
     float field_of_view;
@@ -22,15 +32,65 @@ typedef struct {
 } CameraCL;
 
 int marshall_camera(Camera camera, CameraCL *out) {
-    for (int i = 0; i < 16; i++) {
-        out->inv_transform[i] = (float)*camera.inv_transform.m[i];
-    }
+    marshall_mat4(&camera.inv_transform, out->inv_transform);
     out->hsize = camera.hsize;
     out->vsize = camera.vsize;
     out->field_of_view = (float)camera.field_of_view;
     return 0;
 }
 
+typedef struct {
+    float color[4];
+    float ambient;
+    float diffuse;
+    float specular;
+    float shininess;
+    float reflective;
+    float transparency;
+    float refractive_index;
+    float pad;
+} MaterialCL;
+
+int marshall_material(Material material, MaterialCL *out) {
+    // Assuming uniform colors for now
+    out->color[0] = (float)material.pattern.a.r;
+    out->color[1] = (float)material.pattern.a.g;
+    out->color[2] = (float)material.pattern.a.b;
+    out->color[3] = 1.0f;
+    out->ambient = (float)material.ambient;
+    out->diffuse = (float)material.diffuse;
+    out->specular = (float)material.specular;
+    out->shininess = (float)material.shininess;
+    out->reflective = (float)material.reflective;
+    out->transparency = (float)material.transparency;
+    out->refractive_index = (float)material.refractive_index;
+    out->pad = 0.0f;
+    return 0;
+}
+
+typedef struct {
+    int type;
+    float ymin;  // Only relevant for cylinders and cones
+    float ymax;  // ditto
+    int closed;  // ditto
+    float inv_transform[16];
+    MaterialCL material;
+} ShapeCL;
+
+int marshall_shapes(World world, ShapeCL *out)  {
+    for (int i = 0; i < world.object_count; i++) {
+        Shape *shape = &world.objects[i];
+        ShapeCL *shape_cl = &out[i];
+
+        shape_cl->type = shape->type;
+        shape_cl->ymin = (float)shape->ymin;
+        shape_cl->ymax = (float)shape->ymax;
+        shape_cl->closed = shape->closed;
+        marshall_mat4(&shape->inv_transform, shape_cl->inv_transform);
+        marshall_material(shape->material, &shape_cl->material);
+    }
+    return 0;
+}
 
 cl_context create_context() {
     // Select an OpenCL platform to run on. For now, just use the default.
@@ -111,7 +171,6 @@ cl_command_queue create_command_queue(cl_context context, cl_device_id *device) 
         return NULL;
     }
 
-    // For now, just use the first available device.
     // If we want this to run on a cluster or something, modify to use all available GPUs.
     cl_command_queue command_queue = clCreateCommandQueue(context, *device, 0, &err);
     if (command_queue == NULL) {
@@ -208,6 +267,45 @@ int render_image(World world, Camera camera, Canvas canvas) {
     }
 
     // Create image object we will use for output
+    int arg_counter = 0;
+    cl_mem buffer;
+
+    // ----------------------------------
+    // Set kernel args
+    // ----------------------------------
+
+    // Camera
+    CameraCL *camera_cl = calloc(1, sizeof(CameraCL));
+    marshall_camera(camera, camera_cl);
+    buffer = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(CameraCL),
+        camera_cl,
+        &err
+    );
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_mem), &buffer);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Error setting camera arg. Error code %d\n", err);
+    }
+
+    // Shapes
+    ShapeCL *shapes_cl = calloc(world.object_count, sizeof(ShapeCL));
+    marshall_shapes(world, shapes_cl);
+    buffer = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(ShapeCL),
+        shapes_cl,
+        &err
+    );
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_int), &world.object_count);
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_mem), &buffer);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Error setting shapes arg. Error code %d\n", err);
+    }
+
+    // Output image
     cl_image_format image_format;
     image_format.image_channel_order = CL_RGBA;
     image_format.image_channel_data_type = CL_UNORM_INT8;
@@ -221,32 +319,16 @@ int render_image(World world, Camera camera, Canvas canvas) {
         NULL,
         &err
     );
+
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_mem), &output_image);
     if (err != CL_SUCCESS) {
-        fprintf(stderr, "Error from clCreateImage2D. Error code %d\n", err);
+        fprintf(stderr, "Error setting output image arg. Error code %d\n", err);
         return 1;
     }
 
-    CameraCL *camera_cl = calloc(1, sizeof(CameraCL));
-    marshall_camera(camera, camera_cl);
-    cl_mem camera_buffer = clCreateBuffer(
-        context,
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(CameraCL),
-        camera_cl,
-        &err
-    );
-    if (err != CL_SUCCESS) {
-        fprintf(stderr, "Error creating camera buffer. Error code %d\n", err);
-    }
-    
-    // Set the kernel arguments
-    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &camera_buffer);
-    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &output_image);
-
-    if (err != CL_SUCCESS) {
-        fprintf(stderr, "Error setting kernel arguments. Error code %d\n", err);
-        return 1;
-    }
+    // ----------------------------------------
+    // Execute kernel
+    // ----------------------------------------
 
     size_t global_work_size[NUM_DIMENSIONS] = { camera.hsize, camera.vsize };
 
