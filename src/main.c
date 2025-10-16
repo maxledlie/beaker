@@ -31,9 +31,6 @@ void log_line(char *msg) {
     );
 }
 
-#define CANVAS_WIDTH 1000
-#define CANVAS_HEIGHT 800
-
 int main() {
     log_line("Starting scene configuration");
 

@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <CL/cl.h>
 
-#define CANVAS_WIDTH 1000
-#define CANVAS_HEIGHT 800
 #define NUM_DIMENSIONS 2
 #define NUM_SPHERES 2
 
@@ -202,8 +200,8 @@ int render_image(World world, Camera camera, Canvas canvas) {
         context,
         CL_MEM_WRITE_ONLY,
         &image_format,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT,
+        camera.hsize,
+        camera.vsize,
         0,
         NULL,
         &err
@@ -265,7 +263,7 @@ int render_image(World world, Camera camera, Canvas canvas) {
     
     // Set the kernel arguments
     cl_uint num_spheres = NUM_SPHERES;
-    cl_uint img_width = CANVAS_WIDTH;
+    cl_uint img_width = camera.hsize;
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &camera_buffer);
     err |= clSetKernelArg(kernel, 1, sizeof(cl_uint), &num_spheres);
     err |= clSetKernelArg(kernel, 2, sizeof(cl_uint), &img_width);
@@ -279,7 +277,7 @@ int render_image(World world, Camera camera, Canvas canvas) {
         return 1;
     }
 
-    size_t global_work_size[NUM_DIMENSIONS] = { CANVAS_WIDTH, CANVAS_HEIGHT };
+    size_t global_work_size[NUM_DIMENSIONS] = { camera.hsize, camera.vsize };
 
     // Queue the kernel up for execution across the array
     err = clEnqueueNDRangeKernel(command_queue, kernel, (cl_uint)NUM_DIMENSIONS, NULL, global_work_size, NULL, 0, NULL, NULL);
@@ -296,7 +294,7 @@ int render_image(World world, Camera camera, Canvas canvas) {
         output_image,
         CL_TRUE,
         (size_t[]){ 0, 0, 0 },
-        (size_t[]){ CANVAS_WIDTH, CANVAS_HEIGHT, 1 },
+        (size_t[]){ camera.hsize, camera.vsize, 1 },
         0,
         0,
         result,
@@ -310,9 +308,9 @@ int render_image(World world, Camera camera, Canvas canvas) {
     }
 
     // Output the result buffer
-    for (int y = 0; y < CANVAS_HEIGHT; y++) {
-        for (int x = 0; x < CANVAS_WIDTH; x++) {
-            int idx = CANVAS_WIDTH * y + x;
+    for (int y = 0; y < camera.vsize; y++) {
+        for (int x = 0; x < camera.hsize; x++) {
+            int idx = camera.hsize * y + x;
             int offset = 4 * idx;
             uint8_t r = result[offset];
             uint8_t g = result[offset + 1];
