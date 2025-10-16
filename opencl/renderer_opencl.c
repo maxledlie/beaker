@@ -10,6 +10,28 @@ const cl_uint MAX_PLATFORMS = 8;
 const cl_uint MAX_PLATFORM_NAME_LEN = 32;
 const cl_uint MAX_DEVICES = 8;
 
+
+// Replicating structs expected by the OpenCL code.
+// It's pretty tedious to define them all in both places - is there a better way?
+typedef struct {
+    float inv_transform[16];
+    float field_of_view;
+    int hsize;
+    int vsize;
+    int pad;  // To ensure aligned to 16 bytes
+} CameraCL;
+
+int marshall_camera(Camera camera, CameraCL *out) {
+    for (int i = 0; i < 16; i++) {
+        out->inv_transform[i] = (float)*camera.inv_transform.m[i];
+    }
+    out->hsize = camera.hsize;
+    out->vsize = camera.vsize;
+    out->field_of_view = (float)camera.field_of_view;
+    return 0;
+}
+
+
 cl_context create_context() {
     // Select an OpenCL platform to run on. For now, just use the default.
     cl_platform_id first_platform_id;
@@ -157,14 +179,14 @@ int init_opencl(cl_context *out_context, cl_command_queue *out_command_queue, cl
     }
 
     // Create OpenCL program from source file
-    cl_program program = create_program(context, device, "src/hello.cl");
+    cl_program program = create_program(context, device, "opencl/raytrace.cl");
     if (program == NULL) {
         return 1;
     }
 
     // Create OpenCL kernel
     cl_int kernel_err;
-    cl_kernel kernel = clCreateKernel(program, "circles_kernel", &kernel_err);
+    cl_kernel kernel = clCreateKernel(program, "raytrace_kernel", &kernel_err);
     if (kernel == NULL) {
         fprintf(stderr, "Failed to create kernel. Error code %d\n", kernel_err);
         return 1;
@@ -174,13 +196,6 @@ int init_opencl(cl_context *out_context, cl_command_queue *out_command_queue, cl
     *out_command_queue = command_queue;
     *out_kernel = kernel;
     return 0;
-}
-
-void flatten_camera(Camera camera, float out[17]) {
-    for (int i = 0; i < 16; i++) {
-        out[i] = (float)*camera.inv_transform.m[i];
-    }
-    out[16] = (float)camera.field_of_view;
 }
 
 int render_image(World world, Camera camera, Canvas canvas) {
@@ -211,50 +226,13 @@ int render_image(World world, Camera camera, Canvas canvas) {
         return 1;
     }
 
-    // Create memory objects that will be used as arguments to the kernel.
-    int num_mem_objects = 3;
-    cl_mem *mem_objects = calloc(num_mem_objects, sizeof(cl_mem));
-
-    // Placeholder scene data that we're using instead of World for now
-    float xs[NUM_SPHERES] = { 80.0, 560.0 };
-    float ys[NUM_SPHERES] = { 50.0, 600.0 };
-    float rs[NUM_SPHERES] = { 300.0, 200.0 };
-
-    // Create buffer for xs
-    mem_objects[0] = clCreateBuffer(
-        context,
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * NUM_SPHERES,
-        xs,
-        NULL
-    );
-
-    // Create buffer for ys
-    mem_objects[1] = clCreateBuffer(
-        context,
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * NUM_SPHERES,
-        ys,
-        NULL
-    );
-
-    // Create buffer for rs
-    mem_objects[2] = clCreateBuffer(
-        context,
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(float) * NUM_SPHERES,
-        rs,
-        NULL
-    );
-
-    
-    float *camera_data = calloc(17, sizeof(float));
-    flatten_camera(camera, camera_data);
+    CameraCL *camera_cl = calloc(1, sizeof(CameraCL));
+    marshall_camera(camera, camera_cl);
     cl_mem camera_buffer = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        20 * sizeof(float),
-        camera_data,
+        sizeof(CameraCL),
+        camera_cl,
         &err
     );
     if (err != CL_SUCCESS) {
@@ -262,15 +240,8 @@ int render_image(World world, Camera camera, Canvas canvas) {
     }
     
     // Set the kernel arguments
-    cl_uint num_spheres = NUM_SPHERES;
-    cl_uint img_width = camera.hsize;
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &camera_buffer);
-    err |= clSetKernelArg(kernel, 1, sizeof(cl_uint), &num_spheres);
-    err |= clSetKernelArg(kernel, 2, sizeof(cl_uint), &img_width);
-    err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &mem_objects[0]);
-    err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &mem_objects[1]);
-    err |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &mem_objects[2]);
-    err |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &output_image);
+    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &output_image);
 
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error setting kernel arguments. Error code %d\n", err);
