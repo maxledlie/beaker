@@ -1,7 +1,8 @@
 __constant bool DEBUG = true;
 __constant int SHAPE_TYPE_SPHERE = 0;
 __constant int SHAPE_TYPE_PLANE = 1;
-__constant float SKIN_DEPTH = 0.1f;
+__constant float SKIN_DEPTH = 0.0001f;
+__constant int MAX_REFLECTIONS = 5;
 
 typedef struct {
     float4 inv_transform[4];
@@ -192,13 +193,6 @@ __kernel void raytrace_kernel(
     __constant PointLight *lights,
     __write_only image2d_t result_img
 ) {
-    if (should_print()) {
-        printf("num_shapes: %d\n", num_shapes);
-        printf("shapes[0].material.color.r: %f\n", shapes[0].material.color.x);
-        printf("shapes[1].material.color.r: %f\n", shapes[1].material.color.x);
-        printf("shapes[2].material.color.r: %f\n", shapes[2].material.color.x);
-    }
-
     // Get pixel coordinates
     int2 pixel = (int2)(get_global_id(0), get_global_id(1));
     float2 pixelf = convert_float2(pixel);
@@ -245,28 +239,27 @@ __kernel void raytrace_kernel(
     for (int i = 0; i < num_lights; i++) {
         PointLight light = lights[i];
 
-        // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
-        // it intersects with something on its way. We check if a point *slightly above* the surface is shadowed.
-        // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
-        float4 over_point = intersection_point + SKIN_DEPTH * normalv;
-        float4 over_point_to_light = light.position - over_point;
-        float light_distance = length(over_point_to_light);
-        over_point_to_light = normalize(over_point_to_light);
-
-        Ray r = (Ray) { over_point, over_point_to_light };
-        float t;
-        if (ray_intersect_shapes(r, num_shapes, shapes, &t, NULL) && t < light_distance) {
-            continue;
-        }
-
         // We use the elementwise product to combine the light color and the material color.
         float3 effective_color = light.intensity.xyz * hit_shape.material.color.xyz;
 
         // Add ambient contribution. This doesn't depend at all on the position of the light.
         combined_color += effective_color * hit_shape.material.ambient;
 
+        // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
+        // it intersects with something on its way. We check if a point *slightly above* the surface is shadowed.
+        // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
+        float4 over_point = intersection_point + SKIN_DEPTH * normalv;
+        float4 lightv = light.position - over_point;
+        float light_distance = length(lightv);
+        lightv = normalize(lightv);
+
+        Ray r = (Ray) { over_point, lightv };
+        float t;
+        if (ray_intersect_shapes(r, num_shapes, shapes, &t, NULL) && t < light_distance) {
+            continue;
+        }
+
         // Add diffuse contribution.
-        float4 lightv = normalize(light.position - intersection_point);
         float light_dot_normal = dot(lightv, normalv);
         if (light_dot_normal < 0.0f) {
             continue;
