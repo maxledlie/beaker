@@ -63,7 +63,7 @@ int main() {
     material.diffuse = 0.6;
     Shape right_wall = plane_new(transform, material, "right_wall");
 
-    transform = translation(0.0, 0.5, 0.0);
+    transform = mat4d_mul_mat4d(translation(0.0, 2.0, 0.0), scaling(2.0, 2.0, 2.0));
     material = material_default();
     material.pattern = pattern_gradient_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
     material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
@@ -82,7 +82,7 @@ int main() {
     material.reflective = 0.1;
     Shape right = sphere_new(transform, material, "right");
 
-    transform = mat4d_mul_mat4d(translation(-2.0, 0.6, -2.5), scaling(0.6, 0.6, 0.6));
+    transform = mat4d_mul_mat4d(translation(-2.0, 0.6, -4.0), scaling(0.6, 0.6, 0.6));
     material = material_default();
     material.pattern = pattern_plain_new(color_rgb(1.0, 0.8, 0.1), mat4d_identity());
     material.diffuse = 0.7;
@@ -113,7 +113,7 @@ int main() {
         d4_point(0., 0., 0.),
         d4_vector(0., 1., 0.)
     );
-    Camera camera = camera_new(1000, 800, M_PI / 3., view);
+    Camera camera = camera_new(1200, 1000, M_PI / 3., view);
     Canvas canvas = canvas_create(camera.hsize, camera.vsize);
 
     log_line("Completed scene configuration");
