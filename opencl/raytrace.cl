@@ -102,6 +102,11 @@ Ray transform_ray(Ray r, __constant float4 transform[4]) {
     };
 }
 
+float4 reflect(float4 in, float4 normal) {
+    float scale = 2.0f * dot(in, normal);
+    return in - normal * scale;
+}
+
 __kernel void raytrace_kernel(
     __constant Camera *camera,
     int num_shapes,
@@ -182,8 +187,21 @@ __kernel void raytrace_kernel(
         return;
     }
 
-    float diffuse = hit_shape.material.diffuse * light_dot_normal;
-    float4 color = (float4)(diffuse * hit_shape.material.color.xyz, 1.0f);
+    float3 diffuse = hit_shape.material.color.xyz * hit_shape.material.diffuse * light_dot_normal;
+
+    float4 eyev = -ray.direction;
+    float4 reflectv = reflect(-lightv, world_normal);
+    float reflect_dot_eye = dot(eyev, reflectv);
+
+    float3 specular;
+    if (reflect_dot_eye <= 0.0f) {
+        specular = (float3)(0.0f, 0.0f, 0.0f);
+    } else {
+        float factor = pow(reflect_dot_eye, hit_shape.material.shininess);
+        specular = (float3)(1.0f, 1.0f, 1.0f) * hit_shape.material.specular * factor;
+    }
+
+    float4 color = (float4)(diffuse + specular, 1.0f);
 
     if (should_print()) {
         printf("hit_shape.inv_transform:\n");
