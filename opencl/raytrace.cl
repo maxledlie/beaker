@@ -1,6 +1,7 @@
 __constant bool DEBUG = true;
 __constant int SHAPE_TYPE_SPHERE = 0;
 __constant int SHAPE_TYPE_PLANE = 1;
+__constant float SKIN_DEPTH = 0.1f;
 
 typedef struct {
     float4 inv_transform[4];
@@ -135,6 +136,26 @@ bool ray_intersect_shape(Ray ray, __constant Shape *shape, float *t) {
     }
 }
 
+bool ray_intersect_shapes(Ray ray, int num_shapes, __constant Shape *shapes, float *t, int *hit_index) {
+    // Puts the smallest non-negative t-value at which the ray intersects an object in the world and returns true.
+    // Or returns false if the ray flies off to infinity.
+    float tmin = INFINITY;
+    int hi = -1;
+    for (int i = 0; i < num_shapes; i++) {
+        __constant Shape *shape = &shapes[i];
+        float t;
+        if (ray_intersect_shape(ray, shape, &t) && t < tmin) {
+            tmin = t;
+            hi = i;
+        }
+    }
+    if (hit_index != NULL) {
+        *hit_index = hi;
+    }
+    *t = tmin;
+    return hi != -1;
+}
+
 float4 normal_at(Shape *shape, float4 world_point) {
     // First transform the hit point into the shape's object space to simplify the calculation
     float4 intersection_local = _mat_mul_vec(shape->inv_transform, world_point);
@@ -199,18 +220,9 @@ __kernel void raytrace_kernel(
     Ray ray = { ray_origin_world, direction };
 
     // Find closest intersection of ray with any shape.
-    float tmin = INFINITY;
-    int hit_index = -1;
-    for (int i = 0; i < num_shapes; i++) {
-        __constant Shape *shape = &shapes[i];
-        float t;
-        if (ray_intersect_shape(ray, shape, &t) && t < tmin) {
-            tmin = t;
-            hit_index = i;
-        }
-    }
-
-    if (hit_index == -1) {
+    float t;
+    int hit_index;
+    if (!ray_intersect_shapes(ray, num_shapes, shapes, &t, &hit_index)) {
         // Ray missed everything - pixel is black
         write_imagef(result_img, pixel, (float4)(0.0f, 0.0f, 0.0f, 1.0f));
         return;
@@ -218,11 +230,10 @@ __kernel void raytrace_kernel(
     Shape hit_shape = shapes[hit_index];
 
     // Find the point t units along the ray - this is where the intersection occured
-    float4 intersection_point = ray.origin + tmin * ray.direction;
+    float4 intersection_point = ray.origin + t * ray.direction;
 
     // Compute normal vector at the hit point.
     float4 normalv = normal_at(&hit_shape, intersection_point);
-
 
     // ----------------
     // Lighting!
@@ -233,6 +244,20 @@ __kernel void raytrace_kernel(
     float3 combined_color = (float3)(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < num_lights; i++) {
         PointLight light = lights[i];
+
+        // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
+        // it intersects with something on its way. We check if a point *slightly above* the surface is shadowed.
+        // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
+        float4 over_point = intersection_point + SKIN_DEPTH * normalv;
+        float4 over_point_to_light = light.position - over_point;
+        float light_distance = length(over_point_to_light);
+        over_point_to_light = normalize(over_point_to_light);
+
+        Ray r = (Ray) { over_point, over_point_to_light };
+        float t;
+        if (ray_intersect_shapes(r, num_shapes, shapes, &t, NULL) && t < light_distance) {
+            continue;
+        }
 
         // We use the elementwise product to combine the light color and the material color.
         float3 effective_color = light.intensity.xyz * hit_shape.material.color.xyz;
@@ -275,7 +300,7 @@ __kernel void raytrace_kernel(
         printf("ray direction:\n");
         printf("%v4hlf\n\n", direction);
         printf("intersection t-value:\n");
-        printf("%f\n\n", tmin);
+        printf("%f\n\n", t);
         printf("intersection_point:\n");
         printf("%v4hlf\n\n", intersection_point);
         printf("normalv:\n");

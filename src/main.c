@@ -90,36 +90,26 @@ int main() {
     material.reflective = 0.1;
     Shape left = sphere_new(transform, material, "left");
 
-    transform = mat4d_mul_mat4d(rotation_y(1.251), scaling(0.3, 0.3, 0.3));
-    transform = mat4d_mul_mat4d(translation(0.1, 0.3, -4.0), transform);
-    material = material_default();
-    material.diffuse = 0.7;
-    material.specular = 0.3;
-    material.reflective = 0.1;
-    material.pattern = pattern_plain_new(color_rgb(0.8, 0.5, 0.3), mat4d_identity());
-    Shape cube = cube_new(transform, material, "cube");
-
-    Vec4D light_position = d4_point(-2.0, 10.0, -10.0);
+    Vec4D light_position = d4_point(3.0, 5.0, -5.0);
     Color light_color = (Color) {1.0, 1.0, 1.0};
     PointLight light = (PointLight) { light_position, light_color };
 
     World world = world_new();
-    world.object_count = 8;
+    world.object_count = 7;
     world.objects = malloc(world.object_count * sizeof(Shape));
     world.objects[0] = right;
     world.objects[1] = middle;
     world.objects[2] = left;
-    world.objects[3] = cube;
-    world.objects[4] = floor;
-    world.objects[5] = left_wall;
-    world.objects[6] = right_wall;
-    world.objects[7] = back_wall;
+    world.objects[3] = floor;
+    world.objects[4] = left_wall;
+    world.objects[5] = right_wall;
+    world.objects[6] = back_wall;
     world.light_count = 1;
     world.lights = malloc(world.light_count * sizeof(PointLight));
     world.lights[0] = light;
 
     Mat4D view = view_transform(
-        d4_point(-2.0, 3.0, -10.0),
+        d4_point(-1.0, 3.0, -10.0),
         d4_point(0., 0., 0.),
         d4_vector(0., 1., 0.)
     );
