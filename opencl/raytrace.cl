@@ -1,4 +1,6 @@
 __constant bool DEBUG = true;
+__constant int SHAPE_TYPE_SPHERE = 0;
+__constant int SHAPE_TYPE_PLANE = 1;
 
 typedef struct {
     float4 inv_transform[4];
@@ -28,6 +30,11 @@ typedef struct {
     float4 inv_transform[4];
     Material material;
 } Shape;
+
+typedef struct {
+    float4 position;   // Where is the light located?
+    float4 intensity;  // What color is the light?
+} PointLight;
 
 typedef struct {
     float4 origin;
@@ -66,7 +73,7 @@ bool should_print() {
     return DEBUG && get_global_id(0) == 500 && get_global_id(1) == 400;
 }
 
-bool ray_intersect_sphere(Ray ray, __constant Shape *shape, float *t) {
+bool ray_intersect_sphere(Ray ray, float *t) {
     // Vector from sphere's center to ray origin
     float4 sphere_to_ray = ray.origin - (float4)(0.0f, 0.0f, 0.0f, 1.0f);
     
@@ -95,12 +102,61 @@ bool ray_intersect_sphere(Ray ray, __constant Shape *shape, float *t) {
     return false;
 }
 
+bool ray_intersect_plane(Ray ray, float *t) {
+    if (fabs(ray.direction.y) < FLT_EPSILON) {
+        return false;
+    }
+    float _t = -ray.origin.y / ray.direction.y;
+    if (_t >= 0.0f) {
+        *t = _t;
+        return true;
+    }
+    return false;
+}
+
 Ray transform_ray(Ray r, __constant float4 transform[4]) {
     return (Ray) {
         mat_mul_vec(transform, r.origin),
         mat_mul_vec(transform, r.direction)
     };
 }
+
+bool ray_intersect_shape(Ray ray, __constant Shape *shape, float *t) {
+    // Transform the ray into the shape's object space to simplify calculations
+    Ray ray_local = transform_ray(ray, shape->inv_transform);
+
+    switch (shape->type) {
+        case SHAPE_TYPE_SPHERE:
+            return ray_intersect_sphere(ray_local, t);
+        case SHAPE_TYPE_PLANE:
+            return ray_intersect_plane(ray_local, t);
+        default:
+            return false;
+    }
+}
+
+float4 normal_at(Shape *shape, float4 world_point) {
+    // First transform the hit point into the shape's object space to simplify the calculation
+    float4 intersection_local = _mat_mul_vec(shape->inv_transform, world_point);
+    float4 local_normal;
+    switch (shape->type) {
+        case SHAPE_TYPE_SPHERE:
+            local_normal = (float4)(intersection_local.xyz, 0.0f);
+            break;
+        default:
+            local_normal = (float4)(0.0f, 1.0f, 0.0f, 0.0f);
+            break;
+    }
+
+    // Convert the normal back to world space. Here we have to multiply by the inverse *transpose*.
+    // (I worked out why this is once but can't remember so just trust me bro)
+    float4 inv_transpose[4];
+    transpose(shape->inv_transform, inv_transpose);
+    float4 world_normal = _mat_mul_vec(inv_transpose, local_normal);
+    world_normal.w = 0.0f;
+    return normalize(world_normal);
+}
+
 
 float4 reflect(float4 in, float4 normal) {
     float scale = 2.0f * dot(in, normal);
@@ -111,13 +167,19 @@ __kernel void raytrace_kernel(
     __constant Camera *camera,
     int num_shapes,
     __constant Shape *shapes,
+    int num_lights,
+    __constant PointLight *lights,
     __write_only image2d_t result_img
 ) {
-    // Get pixel coordinates
-    int pixel_x = get_global_id(0);
-    int pixel_y = get_global_id(1);
+    if (should_print()) {
+        printf("num_shapes: %d\n", num_shapes);
+        printf("shapes[0].material.color.r: %f\n", shapes[0].material.color.x);
+        printf("shapes[1].material.color.r: %f\n", shapes[1].material.color.x);
+        printf("shapes[2].material.color.r: %f\n", shapes[2].material.color.x);
+    }
 
-    int2 pixel = (int2)(pixel_x, pixel_y);
+    // Get pixel coordinates
+    int2 pixel = (int2)(get_global_id(0), get_global_id(1));
     float2 pixelf = convert_float2(pixel);
 
     // Compute camera properties (common to every pixel)
@@ -137,17 +199,13 @@ __kernel void raytrace_kernel(
     Ray ray = { ray_origin_world, direction };
 
     // Find closest intersection of ray with any shape.
-    // For now, assume all shapes are spheres.
     float tmin = INFINITY;
     int hit_index = -1;
     for (int i = 0; i < num_shapes; i++) {
         __constant Shape *shape = &shapes[i];
-
-        // Transform the ray into the shape's object space to simplify calculations
-        Ray ray_local = transform_ray(ray, shape->inv_transform);
         float t;
-        if (ray_intersect_sphere(ray_local, shape, &t)) {
-            tmin = min(tmin, t);
+        if (ray_intersect_shape(ray, shape, &t) && t < tmin) {
+            tmin = t;
             hit_index = i;
         }
     }
@@ -163,45 +221,45 @@ __kernel void raytrace_kernel(
     float4 intersection_point = ray.origin + tmin * ray.direction;
 
     // Compute normal vector at the hit point.
-    // First transform the hit point into the shape's object space to simplify the calculation
-    // Again, assuming shape is a sphere for now, so the normal vector is just the radial vector
-    float4 intersection_local = _mat_mul_vec(hit_shape.inv_transform, intersection_point);
-    float4 local_normal = (float4)(intersection_local.xyz, 0.0f);
+    float4 normalv = normal_at(&hit_shape, intersection_point);
 
-    // Convert the normal back to world space. Here we have to multiply by the inverse *transpose*.
-    // (I worked out why this is once but can't remember so just trust me bro)
-    float4 inv_transpose[4];
-    transpose(hit_shape.inv_transform, inv_transpose);
-    float4 world_normal = _mat_mul_vec(inv_transpose, local_normal);
-    world_normal.w = 0.0f;
-    world_normal = normalize(world_normal);
 
-    // For now, hardcoding a single light source
-    float4 light_position = (float4)(-2.0f, 2.0f, 0.0f, 1.0f);
-    float4 lightv = normalize(light_position - intersection_point);
-    float light_dot_normal = dot(lightv, world_normal);
+    // ----------------
+    // Lighting!
+    // Start with the ambient color of the material and add contributions from each light source in the world.
+    // We use the Phong reflection model to get reasonably good looking shading and specular highlights.
+    // ----------------
 
-    if (light_dot_normal < 0.0f) {
-        // Light is inside the object
-        write_imagef(result_img, pixel, (float4)(0.0f, 0.0f, 0.0f, 1.0f));
-        return;
-    }
+    float3 combined_color = (float3)(0.0f, 0.0f, 0.0f);
+    for (int i = 0; i < num_lights; i++) {
+        PointLight light = lights[i];
 
-    float3 diffuse = hit_shape.material.color.xyz * hit_shape.material.diffuse * light_dot_normal;
+        // We use the elementwise product to combine the light color and the material color.
+        float3 effective_color = light.intensity.xyz * hit_shape.material.color.xyz;
 
-    float4 eyev = -ray.direction;
-    float4 reflectv = reflect(-lightv, world_normal);
-    float reflect_dot_eye = dot(eyev, reflectv);
+        // Add ambient contribution. This doesn't depend at all on the position of the light.
+        combined_color += effective_color * hit_shape.material.ambient;
 
-    float3 specular;
-    if (reflect_dot_eye <= 0.0f) {
-        specular = (float3)(0.0f, 0.0f, 0.0f);
-    } else {
+        // Add diffuse contribution.
+        float4 lightv = normalize(light.position - intersection_point);
+        float light_dot_normal = dot(lightv, normalv);
+        if (light_dot_normal < 0.0f) {
+            continue;
+        }
+        combined_color += effective_color * hit_shape.material.diffuse * light_dot_normal;
+
+        // Add specular contribution.
+        float4 eyev = -ray.direction;
+        float4 reflectv = reflect(-lightv, normalv);
+        float reflect_dot_eye = dot(eyev, reflectv);
+        if (reflect_dot_eye <= 0.0f) {
+            continue;
+        }
         float factor = pow(reflect_dot_eye, hit_shape.material.shininess);
-        specular = (float3)(1.0f, 1.0f, 1.0f) * hit_shape.material.specular * factor;
+        combined_color += light.intensity.xyz * hit_shape.material.specular * factor;
     }
 
-    float4 color = (float4)(diffuse + specular, 1.0f);
+    float4 color = (float4)(combined_color, 1.0f);
 
     if (should_print()) {
         printf("hit_shape.inv_transform:\n");
@@ -209,12 +267,6 @@ __kernel void raytrace_kernel(
         printf("%v4hlf\n", hit_shape.inv_transform[1]);
         printf("%v4hlf\n", hit_shape.inv_transform[2]);
         printf("%v4hlf\n", hit_shape.inv_transform[3]);
-        printf("\n");
-        printf("inv_transpose:\n");
-        printf("%v4hlf\n", inv_transpose[0]);
-        printf("%v4hlf\n", inv_transpose[1]);
-        printf("%v4hlf\n", inv_transpose[2]);
-        printf("%v4hlf\n", inv_transpose[3]);
         printf("\n");
         printf("ray_origin_world:\n");
         printf("%v4hlf\n\n", ray_origin_world);
@@ -226,10 +278,8 @@ __kernel void raytrace_kernel(
         printf("%f\n\n", tmin);
         printf("intersection_point:\n");
         printf("%v4hlf\n\n", intersection_point);
-        printf("lightv:\n");
-        printf("%v4hlf\n\n", lightv);
-        printf("world_normal:\n");
-        printf("%v4hlf\n\n", world_normal);
+        printf("normalv:\n");
+        printf("%v4hlf\n\n", normalv);
         printf("hit_shape.material.color:\n");
         printf("%v4hlf\n\n", hit_shape.material.color);
     }

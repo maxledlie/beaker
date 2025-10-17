@@ -63,7 +63,7 @@ int main() {
     material.diffuse = 0.6;
     Shape right_wall = plane_new(transform, material, "right_wall");
 
-    transform = translation(0.0, 0.0, 6.0);
+    transform = translation(0.0, 0.5, 0.0);
     material = material_default();
     material.pattern = pattern_gradient_new(color_rgb(0.6, 0.2, 0.1), color_rgb(0.0, 0.2, 0.8), mat4d_identity());
     material.pattern.transform = mat4d_mul_mat4d(scaling(0.2, 0.2, 0.2), rotation_z(1.2));
@@ -75,7 +75,7 @@ int main() {
 
     transform = mat4d_mul_mat4d(translation(1.5, 0.5, -2.9), scaling(0.5, 0.5, 0.5));
     material = material_default();
-    material.pattern = pattern_plain_new(color_rgb(1.0, 0.5, 0.1), mat4d_identity());
+    material.pattern = pattern_plain_new(color_rgb(0.9, 0.5, 0.1), mat4d_identity());
     material.diffuse = 0.7;
     material.specular = 0.6;
     material.shininess = 500;
@@ -104,16 +104,23 @@ int main() {
     PointLight light = (PointLight) { light_position, light_color };
 
     World world = world_new();
-    world.object_count = 1;
+    world.object_count = 8;
     world.objects = malloc(world.object_count * sizeof(Shape));
-    world.objects[0] = middle;
+    world.objects[0] = right;
+    world.objects[1] = middle;
+    world.objects[2] = left;
+    world.objects[3] = cube;
+    world.objects[4] = floor;
+    world.objects[5] = left_wall;
+    world.objects[6] = right_wall;
+    world.objects[7] = back_wall;
     world.light_count = 1;
     world.lights = malloc(world.light_count * sizeof(PointLight));
     world.lights[0] = light;
 
     Mat4D view = view_transform(
-        d4_point(0.0, 0.0, 0.0),
-        d4_point(0., 0., 1.),
+        d4_point(-2.0, 3.0, -10.0),
+        d4_point(0., 0., 0.),
         d4_vector(0., 1., 0.)
     );
     Camera camera = camera_new(1000, 800, M_PI / 3., view);

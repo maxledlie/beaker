@@ -23,6 +23,22 @@ int marshall_mat4(Mat4D *in, float out[16]) {
     return 0;
 }
 
+int marshall_vec4(Vec4D *in, float out[4]) {
+    out[0] = (float)in->x;
+    out[1] = (float)in->y;
+    out[2] = (float)in->z;
+    out[3] = (float)in->w;
+    return 0;
+}
+
+int marshall_color(Color *in, float out[4]) {
+    out[0] = (float)in->r;
+    out[1] = (float)in->g;
+    out[2] = (float)in->b;
+    out[3] = 1.0f;
+    return 0;
+}
+
 typedef struct {
     float inv_transform[16];
     float field_of_view;
@@ -88,6 +104,21 @@ int marshall_shapes(World world, ShapeCL *out)  {
         shape_cl->closed = shape->closed;
         marshall_mat4(&shape->inv_transform, shape_cl->inv_transform);
         marshall_material(shape->material, &shape_cl->material);
+    }
+    return 0;
+}
+
+typedef struct {
+    float position[4];
+    float intensity[4];
+} PointLightCL;
+
+int marshall_lights(World world, PointLightCL *out) {
+    for (int i = 0; i < world.light_count; i++) {
+        PointLight *light = &world.lights[i];
+        PointLightCL *light_cl = &out[i];
+        marshall_vec4(&light->position, light_cl->position);
+        marshall_color(&light->intensity, light_cl->intensity);
     }
     return 0;
 }
@@ -295,7 +326,7 @@ int render_image(World world, Camera camera, Canvas canvas) {
     buffer = clCreateBuffer(
         context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-        sizeof(ShapeCL),
+        world.object_count * sizeof(ShapeCL),
         shapes_cl,
         &err
     );
@@ -303,6 +334,22 @@ int render_image(World world, Camera camera, Canvas canvas) {
     err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_mem), &buffer);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Error setting shapes arg. Error code %d\n", err);
+    }
+
+    // Lights
+    PointLightCL *lights_cl = calloc(world.light_count, sizeof(PointLightCL));
+    marshall_lights(world, lights_cl);
+    buffer = clCreateBuffer(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        world.light_count * sizeof(PointLightCL),
+        lights_cl,
+        &err
+    );
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_int), &world.light_count);
+    err |= clSetKernelArg(kernel, arg_counter++, sizeof(cl_mem), &buffer);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Error setting lights arg. Error code %d\n", err);
     }
 
     // Output image
