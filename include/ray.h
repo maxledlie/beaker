@@ -47,6 +47,7 @@ typedef struct Ray {
 } Ray;
 
 Ray ray_at_pixel(Camera camera, int px, int py);
+Ray random_ray_within_pixel(Camera camera, int px, int py);
 
 IntersectionData ray_prepare_computations(Ray r, Intersection i);
 
