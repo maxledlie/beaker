@@ -44,18 +44,7 @@ typedef struct {
     float4 direction;
 } Ray;
 
-float4 mat_mul_vec(__constant float4 mat[4], float4 vec) {
-    return (float4)(
-        dot(mat[0], vec),
-        dot(mat[1], vec),
-        dot(mat[2], vec),
-        dot(mat[3], vec)
-    );
-}
-
-// Need two versions of this, one for constant data!?
-// Surely there's a better way...
-float4 _mat_mul_vec(float4 mat[4], float4 vec) {
+float4 mat_mul_vec(__global float4 mat[4], float4 vec) {
     return (float4)(
         dot(mat[0], vec),
         dot(mat[1], vec),
@@ -72,7 +61,6 @@ bool ray_intersect_sphere(Ray ray, float *t) {
     float b = 2.0f * dot(ray.direction, sphere_to_ray);
     float c = dot(sphere_to_ray, sphere_to_ray) - 1.0f;
     float disc = b * b - 4 * a * c;
-
     if (disc < 0) {
         return false;
     }
@@ -80,7 +68,6 @@ bool ray_intersect_sphere(Ray ray, float *t) {
     float root = sqrt(disc);
     float t1 = (-b - root) / (2.0f * a);
     float t2 = (-b + root) / (2.0f * a);
-
     float tmin = min(t1, t2);
     float tmax = max(t1, t2);
     if (tmin >= 0.0f) {
@@ -105,63 +92,47 @@ bool ray_intersect_plane(Ray ray, float *t) {
     return false;
 }
 
-Ray transform_ray(Ray r, __constant float4 transform[4]) {
+Ray transform_ray(Ray r, __global float4 transform[4]) {
     return (Ray) {
         mat_mul_vec(transform, r.origin),
         mat_mul_vec(transform, r.direction)
     };
 }
 
-bool ray_intersect_shape(Ray ray, __constant Shape *shape, float *t) {
-    // Transform the ray into the shape's object space to simplify calculations
-    Ray ray_local = transform_ray(ray, shape->inv_transform);
-
-    switch (shape->type) {
-        case SHAPE_TYPE_SPHERE:
-            return ray_intersect_sphere(ray_local, t);
-        case SHAPE_TYPE_PLANE:
-            return ray_intersect_plane(ray_local, t);
-        default:
-            return false;
-    }
-}
-
-bool ray_intersect_shapes(Ray ray, int num_shapes, __constant Shape *shapes, float *t, int *hit_index) {
+bool ray_intersect_shapes(Ray ray, int num_shapes, __global Shape *shapes, float *t, int *hit_index) {
     // Puts the smallest non-negative t-value at which the ray intersects an object in the world and returns true.
     // Or returns false if the ray flies off to infinity.
     float tmin = INFINITY;
-    int hi = -1;
+    *hit_index = -1;
     for (int i = 0; i < num_shapes; i++) {
-        __constant Shape *shape = &shapes[i];
-        float t;
-        if (ray_intersect_shape(ray, shape, &t) && t < tmin) {
-            tmin = t;
-            hi = i;
+        __global Shape *shape = &shapes[i];
+
+        // Transform the ray into the shape's object space to simplify calculations
+        Ray ray_local = transform_ray(ray, shape->inv_transform);
+        float _t;
+        bool hit = (
+            (shape->type == SHAPE_TYPE_SPHERE && ray_intersect_sphere(ray_local, &_t)) ||
+            (shape->type == SHAPE_TYPE_PLANE && ray_intersect_plane(ray_local, &_t))
+        );
+        if (hit && _t < tmin) {
+            *hit_index = i;
+            tmin = _t;
         }
     }
-    if (hit_index != NULL) {
-        *hit_index = hi;
-    }
     *t = tmin;
-    return hi != -1;
+    return *hit_index != -1;
 }
 
-float4 normal_at(Shape *shape, float4 world_point) {
+float4 normal_at(__global Shape *shape, float4 world_point) {
     // First transform the hit point into the shape's object space to simplify the calculation
-    float4 intersection_local = _mat_mul_vec(shape->inv_transform, world_point);
-    float4 local_normal;
-    switch (shape->type) {
-        case SHAPE_TYPE_SPHERE:
-            local_normal = (float4)(intersection_local.xyz, 0.0f);
-            break;
-        default:
-            local_normal = (float4)(0.0f, 1.0f, 0.0f, 0.0f);
-            break;
-    }
+    float4 intersection_local = mat_mul_vec(shape->inv_transform, world_point);
+    float4 local_normal = shape->type == SHAPE_TYPE_SPHERE
+        ? (float4)(intersection_local.xyz, 0.0f)
+        : (float4)(0.0f, 1.0f, 0.0f, 0.0f);
 
     // Convert the normal back to world space. Here we have to multiply by the inverse *transpose*.
     // (I worked out why this is once but can't remember so just trust me bro)
-    float4 world_normal = _mat_mul_vec(shape->inv_transpose, local_normal);
+    float4 world_normal = mat_mul_vec(shape->inv_transpose, local_normal);
     world_normal.w = 0.0f;
     return normalize(world_normal);
 }
@@ -172,11 +143,11 @@ float4 reflect(float4 in, float4 normal) {
 }
 
 __kernel void raytrace_kernel(
-    __constant Camera *camera,
+    __global Camera *camera,
     int num_shapes,
-    __constant Shape *shapes,
+    __global Shape *shapes,
     int num_lights,
-    __constant PointLight *lights,
+    __global PointLight *lights,
     __write_only image2d_t result_img
 ) {
     // Get pixel coordinates
@@ -210,33 +181,29 @@ __kernel void raytrace_kernel(
             // Ray flies off to infinity, adding no color
             break;
         }
-        Shape hit_shape = shapes[hit_index];
+        __global Shape *hit_shape = &shapes[hit_index];
 
-        // Find the point t units along the ray - this is where the intersection occured
+        // Find the point t units along the ray - this is where the intersection occured.
+        // Then compute normal vector at the hit point
         float4 intersection_point = ray.origin + t * ray.direction;
-
-        // Compute normal vector at the hit point.
-        float4 normalv = normal_at(&hit_shape, intersection_point);
+        float4 normalv = normal_at(hit_shape, intersection_point);
 
         // Find a point *slightly above* the surface of the object.
         // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
         float4 over_point = intersection_point + SKIN_DEPTH * normalv;
 
-        // ----------------
         // Lighting!
         // Start with the ambient color of the material and add contributions from each light source in the world.
         // We use the Phong reflection model to get reasonably good looking shading and specular highlights.
-        // ----------------
-
         float3 combined_color = (float3)(0.0f);
         for (int i = 0; i < num_lights; i++) {
             PointLight light = lights[i];
 
             // We use the elementwise product to combine the light color and the material color.
-            float3 effective_color = light.intensity.xyz * hit_shape.material.color.xyz;
+            float3 effective_color = light.intensity.xyz * hit_shape->material.color.xyz;
 
             // Add ambient contribution. This doesn't depend at all on the position of the light.
-            combined_color += effective_color * hit_shape.material.ambient;
+            combined_color += effective_color * hit_shape->material.ambient;
 
             // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
             // it intersects with something on its way.
@@ -246,7 +213,8 @@ __kernel void raytrace_kernel(
 
             Ray r = (Ray) { over_point, lightv };
             float t;
-            if (ray_intersect_shapes(r, num_shapes, shapes, &t, NULL) && t < light_distance) {
+            int hit_index;
+            if (ray_intersect_shapes(r, num_shapes, shapes, &t, &hit_index) && t < light_distance) {
                 continue;
             }
 
@@ -255,7 +223,7 @@ __kernel void raytrace_kernel(
             if (light_dot_normal < 0.0f) {
                 continue;
             }
-            combined_color += effective_color * hit_shape.material.diffuse * light_dot_normal;
+            combined_color += effective_color * hit_shape->material.diffuse * light_dot_normal;
 
             // Add specular contribution.
             float4 eyev = -ray.direction;
@@ -264,24 +232,17 @@ __kernel void raytrace_kernel(
             if (reflect_dot_eye <= 0.0f) {
                 continue;
             }
-            float factor = pow(reflect_dot_eye, hit_shape.material.shininess);
-            combined_color += light.intensity.xyz * hit_shape.material.specular * factor;
+            float factor = pow(reflect_dot_eye, hit_shape->material.shininess);
+            combined_color += light.intensity.xyz * hit_shape->material.specular * factor;
         }
 
         accumulated_color += attenuation * combined_color;
 
-        // -----------------------
-        // Set up for next reflection!
-        // -----------------------
-        
-        attenuation *= hit_shape.material.reflective;
+        attenuation *= hit_shape->material.reflective;
         if (attenuation <= STOP_AT_ATTENUATION) {
             break;
         }
-        ray = (Ray) {
-            over_point,
-            reflect(ray.direction, normalv)
-        };
+        ray = (Ray) { over_point, reflect(ray.direction, normalv) };
     }
 
     float4 color = (float4)(accumulated_color, 1.0f);
