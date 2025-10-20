@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 
+#include <stdlib.h>
 #include <matrix.h>
 #include <shape.h>
 #include <config.h>
@@ -9,7 +10,7 @@
 Shape _shape_new(int type, Mat4D transform, Material material, const char *name, double ymin, double ymax, int closed) {
     Mat4D inv = mat4d_inverse(transform);
     Shape s = { type, transform, inv, material, { 0 }, ymin, ymax, closed };
-    strncpy(s.name, name, SHAPE_NAME_LEN - 1);
+    strncpy_s(s.name, SHAPE_NAME_LEN, name, SHAPE_NAME_LEN - 1);
     s.name[SHAPE_NAME_LEN - 1] = '\0';  // Ensure null-termination
     return s;
 }
@@ -104,6 +105,7 @@ Vec4D shape_normal(Shape *shape, Vec4D world_point)
             break;
         default:
             printf("Unrecognised shape type %i", shape->type);
+            exit(1);
     }
 
     // Convert the normal back to world space

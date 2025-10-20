@@ -2,6 +2,7 @@
 
 .vs
 .vscode
+.vs
 out.ppm
 
 # Ignore perf binary and its outputs
