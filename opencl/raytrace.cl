@@ -3,6 +3,7 @@ __constant int SHAPE_TYPE_PLANE = 1;
 __constant float SKIN_DEPTH = 0.0001f;
 __constant float STOP_AT_ATTENUATION = 0.001f;
 __constant int MAX_REFLECTIONS = 5;
+__constant int NUM_SAMPLES = 30;
 
 typedef struct {
     float4 inv_transform[4];
@@ -43,6 +44,26 @@ typedef struct {
     float4 origin;
     float4 direction;
 } Ray;
+
+/* MWC64X random number generator described at https://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html.
+Returns a random 32-bit unsigned integer. */
+uint MWC64X(uint2 *state)
+{
+    enum { A=4294883355U };
+    uint x=(*state).x, c=(*state).y;  // Unpack the state
+    uint res=x^c;                     // Calculate the result
+    uint hi=mul_hi(x,A);              // Step the RNG
+    x=x*A+c;
+    c=hi+(x<c);
+    *state=(uint2)(x,c);              // Pack the state back up
+    return res;                       // Return the next result
+}
+
+/* Returns a random float between 0.0 and 1.0 */
+float random_float(uint2 *random_state) {
+    uint r = MWC64X(random_state);
+    return (float)r / (float)UINT_MAX;
+}
 
 float4 mat_mul_vec(__global float4 mat[4], float4 vec) {
     return (float4)(
@@ -162,89 +183,93 @@ __kernel void raytrace_kernel(
         : (float2)(half_view * aspect, half_view); 
     float camera_pixel_size = camera_half_size.x * 2.0f / (float)camera->hsize;
 
-    // Compute ray at this pixel
-    float2 offset = (pixelf + 0.5f) * camera_pixel_size;   // Offset from edge of camera to pixel's center
-    float4 pixel_center_view = (float4)(camera_half_size - offset, -1.0f, 1.0f); // Untransformed coordinates of pixel center in view space
-    float4 pixel_center_world = mat_mul_vec(camera->inv_transform, pixel_center_view);
-    float4 ray_origin_world = mat_mul_vec(camera->inv_transform, (float4)(0.0f, 0.0f, 0.0f, 1.0f));
-    float4 direction = normalize(pixel_center_world - ray_origin_world);
-    Ray ray = { ray_origin_world, direction };
-
-    // We are going to bounce this ray around the scene up to a maximum number of times, picking up color from
-    // objects it hits along the way. It may be stopped early by a non-reflective object.
+    uint2 random_state = (uint2)((uint)pixel.x, (uint)pixel.y);
     float3 accumulated_color = (float3)(0.0f);
-    float attenuation = 1.0f;
-    for (int depth = 0; depth <= MAX_REFLECTIONS; depth++) {
-        float t;
-        int hit_index;
-        if (!ray_intersect_shapes(ray, num_shapes, shapes, &t, &hit_index)) {
-            // Ray flies off to infinity, adding no color
-            break;
-        }
-        __global Shape *hit_shape = &shapes[hit_index];
+    for (int iSample = 0; iSample < NUM_SAMPLES; iSample++) {
+        // Compute ray at this pixel
+        float2 pixel_fraction = (float2)(random_float(&random_state), random_float(&random_state));
+        float2 offset = (pixelf + pixel_fraction) * camera_pixel_size;   // Offset from edge of camera to pixel's center
+        float4 pixel_center_view = (float4)(camera_half_size - offset, -1.0f, 1.0f); // Untransformed coordinates of pixel center in view space
+        float4 pixel_center_world = mat_mul_vec(camera->inv_transform, pixel_center_view);
+        float4 ray_origin_world = mat_mul_vec(camera->inv_transform, (float4)(0.0f, 0.0f, 0.0f, 1.0f));
+        float4 direction = normalize(pixel_center_world - ray_origin_world);
+        Ray ray = { ray_origin_world, direction };
 
-        // Find the point t units along the ray - this is where the intersection occured.
-        // Then compute normal vector at the hit point
-        float4 intersection_point = ray.origin + t * ray.direction;
-        float4 normalv = normal_at(hit_shape, intersection_point);
-
-        // Find a point *slightly above* the surface of the object.
-        // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
-        float4 over_point = intersection_point + SKIN_DEPTH * normalv;
-
-        // Lighting!
-        // Start with the ambient color of the material and add contributions from each light source in the world.
-        // We use the Phong reflection model to get reasonably good looking shading and specular highlights.
-        float3 combined_color = (float3)(0.0f);
-        for (int i = 0; i < num_lights; i++) {
-            PointLight light = lights[i];
-
-            // We use the elementwise product to combine the light color and the material color.
-            float3 effective_color = light.intensity.xyz * hit_shape->material.color.xyz;
-
-            // Add ambient contribution. This doesn't depend at all on the position of the light.
-            combined_color += effective_color * hit_shape->material.ambient;
-
-            // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
-            // it intersects with something on its way.
-            float4 lightv = light.position - over_point;
-            float light_distance = length(lightv);
-            lightv = normalize(lightv);
-
-            Ray r = (Ray) { over_point, lightv };
+        // We are going to bounce this ray around the scene up to a maximum number of times, picking up color from
+        // objects it hits along the way. It may be stopped early by a non-reflective object.
+        float attenuation = 1.0f;
+        for (int depth = 0; depth <= MAX_REFLECTIONS; depth++) {
             float t;
             int hit_index;
-            if (ray_intersect_shapes(r, num_shapes, shapes, &t, &hit_index) && t < light_distance) {
-                continue;
+            if (!ray_intersect_shapes(ray, num_shapes, shapes, &t, &hit_index)) {
+                // Ray flies off to infinity, adding no color
+                break;
+            }
+            __global Shape *hit_shape = &shapes[hit_index];
+
+            // Find the point t units along the ray - this is where the intersection occured.
+            // Then compute normal vector at the hit point
+            float4 intersection_point = ray.origin + t * ray.direction;
+            float4 normalv = normal_at(hit_shape, intersection_point);
+
+            // Find a point *slightly above* the surface of the object.
+            // Otherwise, there's a ~50% chance numerical error will cause the object to shadow itself!
+            float4 over_point = intersection_point + SKIN_DEPTH * normalv;
+
+            // Lighting!
+            // Start with the ambient color of the material and add contributions from each light source in the world.
+            // We use the Phong reflection model to get reasonably good looking shading and specular highlights.
+            float3 combined_color = (float3)(0.0f);
+            for (int i = 0; i < num_lights; i++) {
+                PointLight light = lights[i];
+
+                // We use the elementwise product to combine the light color and the material color.
+                float3 effective_color = light.intensity.xyz * hit_shape->material.color.xyz;
+
+                // Add ambient contribution. This doesn't depend at all on the position of the light.
+                combined_color += effective_color * hit_shape->material.ambient;
+
+                // Check if the point is in shadow with respect to this light by casting a ray towards it and seeing if
+                // it intersects with something on its way.
+                float4 lightv = light.position - over_point;
+                float light_distance = length(lightv);
+                lightv = normalize(lightv);
+
+                Ray r = (Ray) { over_point, lightv };
+                float t;
+                int hit_index;
+                if (ray_intersect_shapes(r, num_shapes, shapes, &t, &hit_index) && t < light_distance) {
+                    continue;
+                }
+
+                // Add diffuse contribution.
+                float light_dot_normal = dot(lightv, normalv);
+                if (light_dot_normal < 0.0f) {
+                    continue;
+                }
+                combined_color += effective_color * hit_shape->material.diffuse * light_dot_normal;
+
+                // Add specular contribution.
+                float4 eyev = -ray.direction;
+                float4 reflectv = reflect(-lightv, normalv);
+                float reflect_dot_eye = dot(eyev, reflectv);
+                if (reflect_dot_eye <= 0.0f) {
+                    continue;
+                }
+                float factor = pow(reflect_dot_eye, hit_shape->material.shininess);
+                combined_color += light.intensity.xyz * hit_shape->material.specular * factor;
             }
 
-            // Add diffuse contribution.
-            float light_dot_normal = dot(lightv, normalv);
-            if (light_dot_normal < 0.0f) {
-                continue;
-            }
-            combined_color += effective_color * hit_shape->material.diffuse * light_dot_normal;
+            accumulated_color += attenuation * combined_color;
 
-            // Add specular contribution.
-            float4 eyev = -ray.direction;
-            float4 reflectv = reflect(-lightv, normalv);
-            float reflect_dot_eye = dot(eyev, reflectv);
-            if (reflect_dot_eye <= 0.0f) {
-                continue;
+            attenuation *= hit_shape->material.reflective;
+            if (attenuation <= STOP_AT_ATTENUATION) {
+                break;
             }
-            float factor = pow(reflect_dot_eye, hit_shape->material.shininess);
-            combined_color += light.intensity.xyz * hit_shape->material.specular * factor;
+            ray = (Ray) { over_point, reflect(ray.direction, normalv) };
         }
-
-        accumulated_color += attenuation * combined_color;
-
-        attenuation *= hit_shape->material.reflective;
-        if (attenuation <= STOP_AT_ATTENUATION) {
-            break;
-        }
-        ray = (Ray) { over_point, reflect(ray.direction, normalv) };
     }
 
-    float4 color = (float4)(accumulated_color, 1.0f);
+    float4 color = (float4)(accumulated_color / NUM_SAMPLES, 1.0f);
     write_imagef(result_img, pixel, color);
 }
