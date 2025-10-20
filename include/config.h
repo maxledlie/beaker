@@ -6,5 +6,6 @@ static const int CFG_SINGLE_PIXEL_DEBUG = 0;
 static const int CFG_SINGLE_PIXEL_X = 991;
 static const int CFG_SINGLE_PIXEL_Y = 9;
 static const int CFG_VERBOSE = 0;
+static const int CFG_NUM_SAMPLES = 10;
 
 static const double EPSILON = 0.0000001;

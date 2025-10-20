@@ -8,6 +8,7 @@
 #include <vector.h>
 #include <ray.h>
 #include <shape.h>
+#include <random.h>
 
 const size_t BASE_INTERSECTION_COUNT = 4;
 
@@ -53,7 +54,7 @@ int intersection_list_add(IntersectionList *xs, Intersection x)
     return 0;
 }
 
-Ray ray_at_pixel(Camera camera, int px, int py)
+Ray _ray_at_fractional_pixel(Camera camera, double px, double py)
 {
     // Offset from edge of canvas to pixel's center
     double xoffset = (px + 0.5) * camera.pixel_size;
@@ -71,6 +72,15 @@ Ray ray_at_pixel(Camera camera, int px, int py)
     Vec4D direction = d4_norm(d4_sub(pixel, origin));
     
     return (Ray){ origin, direction };
+}
+
+Ray random_ray_within_pixel(Camera camera, int px, int py) {
+    return _ray_at_fractional_pixel(camera, px + random_double(), py + random_double());
+}
+
+Ray ray_at_pixel(Camera camera, int px, int py)
+{
+    return _ray_at_fractional_pixel(camera, px + 0.5, py + 0.5);
 }
 
 Ray ray_transform(Ray ray, Mat4D transform)
